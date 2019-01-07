@@ -7,6 +7,13 @@ that I was using at that time; I no longer recall any details,
 but I've used this makedepend on all makefiles that I have
 created ever since!!
 
+Modified by Thiadmer Riemersma, 2019
+- some minor adjustments for better compatibility with Microsoft Windows;
+- added the -h command line option, to show program usage;
+- added the -b command line option, to skip making backups of the makefiles;
+- let makedepend create the file with dependencies if it does not exist;
+
+
 The original copyright messages from the Open Group are shown below.
 //*********************************************************************
 

@@ -84,13 +84,14 @@ pr(struct inclist *ip, char *file, char *base)
 
 	printed = TRUE;
 	len = strlen(ip->i_file)+1;
-	if (current_len + len > width || file != lastfile) {
+	if (file != lastfile) {
 		lastfile = file;
-		sprintf(buf, "\n%s%s%s: %s", objprefix, base, objsuffix,
-			ip->i_file);
+		sprintf(buf, "\n%s%s%s : %s", objprefix, base, objsuffix, ip->i_file);
 		len = current_len = strlen(buf);
-	}
-	else {
+    } else if (current_len + len > width) {
+		sprintf(buf, " \\\n\t%s", ip->i_file);
+		len = current_len = strlen(buf);
+	} else {
 		buf[0] = ' ';
 		strcpy(buf+1, ip->i_file);
 		current_len += len;

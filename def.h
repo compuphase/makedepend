@@ -32,7 +32,9 @@ in this Software without prior written authorization from The Open Group.
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#if !defined _MSC_VER
 #include <unistd.h>
+#endif
 #if 0
 #ifndef X_NOT_POSIX
 #ifndef _POSIX_SOURCE
@@ -181,3 +183,4 @@ int			cppsetup(char *filename,
 extern void fatalerr(char *, ...);
 extern void warning(char *, ...);
 extern void warning1(char *, ...);
+extern void showusage (void);
