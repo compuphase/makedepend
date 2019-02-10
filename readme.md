@@ -254,7 +254,7 @@ in this Software without prior written authorization from The Open Group.
 
 ## Change List
 
-This version is derived from a port of makedepend by Derell Licht (circa 2005)
+This version is derived from a port of makedepend by [Derell Licht](https://github.com/DerellLicht/makedepend) (circa 2005)
 of the original source code to a contemporary version of GNU GCC. It has since
 been modified to bring new features and improvements:
 
