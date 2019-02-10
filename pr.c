@@ -28,68 +28,35 @@ in this Software without prior written authorization from The Open Group.
 
 #include "def.h"
 
-extern struct	inclist	inclist[ MAXFILES ],
-			*inclistp;
 extern char	*objprefix;
 extern char	*objsuffix;
 extern int	width;
 extern boolean	printed;
 extern boolean	verbose;
-extern boolean	show_where_not;
-
-void
-add_include(struct filepointer *filep, struct inclist *file, 
-	    struct inclist *file_red, char *include, int type,
-	    boolean failOK)
-{
-	register struct inclist	*newfile;
-	register struct filepointer	*content;
-
-	/*
-	 * First decide what the pathname of this include file really is.
-	 */
-	newfile = inc_path(file->i_file, include, type);
-	if (newfile == NULL) {
-		if (failOK)
-		    return;
-		if (file != file_red)
-			warning("%s (reading %s, line %d): ",
-				file_red->i_file, file->i_file, filep->f_line);
-		else
-			warning("%s, line %d: ", file->i_file, filep->f_line);
-		warning1("cannot find include file \"%s\"\n", include);
-		show_where_not = TRUE;
-		newfile = inc_path(file->i_file, include, type);
-		show_where_not = FALSE;
-	}
-
-	if (newfile) {
-		included_by(file, newfile);
-		if (!(newfile->i_flags & SEARCHED)) {
-			newfile->i_flags |= SEARCHED;
-			content = getfile(newfile->i_file);
-			find_includes(content, newfile, file_red, 0, failOK);
-			freefile(content);
-		}
-	}
-}
 
 static void
-pr(struct inclist *ip, char *file, char *base)
+pr(struct inclist *ip, const char *file, const char *base)
 {
-	static char	*lastfile;
+	static const char *lastfile;
 	static int	current_len;
-	register int	len, i;
+	register int	len, i, prefixlen;
 	char	buf[ BUFSIZ ];
 
 	printed = TRUE;
 	len = strlen(ip->i_file)+1;
 	if (file != lastfile) {
 		lastfile = file;
-		sprintf(buf, "\n%s%s%s : %s", objprefix, base, objsuffix, ip->i_file);
+		prefixlen = strlen(objprefix);
+		if (*objprefix == '-' && strncmp(base, objprefix + 1, prefixlen - 1) == 0) {
+		  /* delete prefix (on match) */
+		  snprintf(buf, sizeof(buf), "\n%s%s : %s", base + prefixlen - 1, objsuffix, ip->i_file);
+		} else {
+		  /* normal prefix */
+		  snprintf(buf, sizeof(buf), "\n%s%s%s : %s", objprefix, base, objsuffix, ip->i_file);
+		}
 		len = current_len = strlen(buf);
-    } else if (current_len + len > width) {
-		sprintf(buf, " \\\n\t%s", ip->i_file);
+    } else if (current_len + len + 5 > width) {
+		snprintf(buf, sizeof(buf), " \\\n\t%s", ip->i_file);
 		len = current_len = strlen(buf);
 	} else {
 		buf[0] = ' ';
@@ -111,7 +78,7 @@ pr(struct inclist *ip, char *file, char *base)
 }
 
 void
-recursive_pr_include(struct inclist *head, char *file, char *base)
+recursive_pr_include(struct inclist *head, const char *file, const char *base)
 {
 	int	i;
 

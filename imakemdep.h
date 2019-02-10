@@ -1026,6 +1026,7 @@ void (*defaultOsTeenyRevFrob)(char *buf, int size) = NULL;
 #define DEF_EVALUATE(__x) #__x
 #define DEF_STRINGIFY(_x) DEF_EVALUATE(_x)
 struct symtab	predefs[] = {
+	{"_makedepend", "106"},
 #ifdef apollo
 	{"apollo", "1"},
 #endif
@@ -1388,6 +1389,21 @@ struct symtab	predefs[] = {
 #endif
 #if defined(__LITTLE_ENDIAN__)
       {"__LITTLE_ENDIAN__", "1"},
+#endif
+#ifdef _WIN32
+	{"_WIN32", "1"},
+#endif
+#ifdef _WIN64
+	{"_WIN64", "1"},
+#endif
+#if defined (_M_IX86)
+	{"_M_IX86", "1"},
+#endif
+#if defined (_M_X64)
+	{"_M_X64", "1"},
+#endif
+#if defined (_M_AMD64)
+	{"_M_AMD64", "1"},
 #endif
 	/* add any additional symbols before this line */
 	{NULL, NULL}

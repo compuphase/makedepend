@@ -1,5 +1,5 @@
 
-/* $Xorg: main.c,v 1.5 2001/02/09 02:03:16 xorgcvs Exp $ */
+/* $Xorg: main.c,v 1.0.5 2001/02/09 02:03:16 xorgcvs Exp $ */
 
 /*
 
@@ -55,51 +55,55 @@ in this Software without prior written authorization from The Open Group.
 #include <stdarg.h>
 
 #ifdef MINIX
-#define USE_CHMOD	1
+#define USE_CHMOD   1
 #endif
 
 #ifdef DEBUG
 int _debugmask;
 #endif
 
+#if (defined _WIN32 || defined __WIN32__) && !defined WIN32
+#define WIN32
+#endif
+
 /* #define DEBUG_DUMP */
 #ifdef DEBUG_DUMP
 #define DBG_PRINT(file, fmt, args)   fprintf(file, fmt, args)
 #else
-#define DBG_PRINT(file, fmt, args)	/* empty */
+#define DBG_PRINT(file, fmt, args)  /* empty */
 #endif
 
 #define DASH_INC_PRE    "#include \""
 #define DASH_INC_POST   "\""
 
-char *ProgramName;
+const char *ProgramName;
 
-char *directives[] = {
-	"if",
-	"ifdef",
-	"ifndef",
-	"else",
-	"endif",
-	"define",
-	"undef",
-	"include",
-	"line",
-	"pragma",
-	"error",
-	"ident",
-	"sccs",
-	"elif",
-	"eject",
-	"warning",
-	"include_next",
-	NULL
+const char * const directives[] = {
+    "if",
+    "ifdef",
+    "ifndef",
+    "else",
+    "endif",
+    "define",
+    "undef",
+    "include",
+    "line",
+    "pragma",
+    "error",
+    "ident",
+    "sccs",
+    "elif",
+    "eject",
+    "warning",
+    "include_next",
+    NULL
 };
 
 #define  OBJSUFFIX   ".o"
 #define  INCLUDEDIR  ""
 
 #define MAKEDEPEND
-#include "imakemdep.h"			  /* from config sources */
+#include "imakemdep.h"            /* from config sources */
 #undef MAKEDEPEND
 
 #if defined WIN32 || defined _WIN32 || defined __WIN32__
@@ -111,10 +115,13 @@ char *directives[] = {
 #endif
 
 struct inclist inclist[MAXFILES],
-	*inclistp = inclist, *inclistnext = inclist, maininclist;
+    *inclistp = inclist,
+    *inclistnext = inclist,
+    maininclist;
 
 static char *filelist[MAXFILES];
-char *includedirs[MAXDIRS + 1], **includedirsnext = includedirs;
+const char  *includedirs[ MAXDIRS + 1 ];
+const char **includedirsnext = includedirs;
 char *notdotdot[MAXDIRS];
 static int cmdinc_count = 0;
 static char *cmdinc_list[2 * MAXINCFILES];
@@ -131,20 +138,19 @@ boolean show_where_not = FALSE;
 /* Warn on multiple includes of same file */
 boolean warn_multiple = FALSE;
 
-static void setfile_cmdinc (struct filepointer *filep, long count,
-	char **list);
-static void redirect (char *line, char *makefile);
+static void setfile_cmdinc (struct filepointer *filep, long count, char **list);
+static void redirect(const char *line, const char *makefile);
 
 static
 #ifdef SIGNALRETURNSINT
-	int
+    int
 #else
-	void
+    void
 #endif
 catch (int sig)
 {
-	fflush (stdout);
-	fatalerr ("got signal %d\n", sig);
+    fflush (stdout);
+    fatalerr ("got signal %d\n", sig);
 }
 
 #if defined(USG) || (defined(i386) && defined(SYSV)) || defined(WIN32) || defined(__UNIXOS2__) || defined(Lynx_22) || defined(__CYGWIN__)
@@ -158,399 +164,406 @@ catch (int sig)
 #define sa_mask sv_mask
 #define sa_flags sv_flags
 #endif
-struct sigaction sig_act;
+static struct sigaction sig_act;
 #endif /* USGISH */
 
 int main (int argc, char *argv[])
 {
-	char **fp = filelist;
-	char **incp = includedirs;
-	char *p;
-	struct inclist *ip;
-	char *makefile = NULL;
-	struct filepointer *filecontent;
-	struct symtab *psymp = predefs;
-	char *endmarker = NULL;
-	char *defincdir = NULL;
-	char **undeflist = NULL;
-	int numundefs = 0, i;
+    char **fp = filelist;
+    const char **incp = includedirs;
+    char *p;
+    struct inclist *ip;
+    char *makefile = NULL;
+    struct filepointer *filecontent;
+    const struct symtab *psymp = predefs;
+    const char *endmarker = NULL;
+    char **undeflist = NULL;
+    int numundefs = 0, i;
+    boolean systeminclude = TRUE;
+    boolean showhelp = FALSE;
 
-	ProgramName = argv[0];
+    ProgramName = argv[0];
 
-	while (psymp->s_name) {
-		define2 (psymp->s_name, NULL, psymp->s_value, &maininclist);
-		psymp++;
-	}
-	if (argc == 2 && argv[1][0] == '@') {
-		struct stat ast;
-		int afd;
-		char *args;
-		char **nargv;
-		int nargc;
-		char quotechar = '\0';
+    while (psymp->s_name) {
+        define2 (psymp->s_name, NULL, psymp->s_value, &maininclist);
+        psymp++;
+    }
+    if (argc == 2 && argv[1][0] == '@') {
+        struct stat ast;
+        int afd;
+        char *args;
+        char **nargv;
+        int nargc;
+        char quotechar = '\0';
 
-		nargc = 1;
-		if ((afd = _open (argv[1] + 1, O_RDONLY)) < 0)
-			fatalerr ("cannot open \"%s\"\n", argv[1] + 1);
-		fstat (afd, &ast);
-		args = (char *) malloc (ast.st_size + 1);
-		if ((ast.st_size = _read (afd, args, ast.st_size)) < 0)
-			fatalerr ("failed to read %s\n", argv[1] + 1);
-		args[ast.st_size] = '\0';
-		_close (afd);
-		for (p = args; *p; p++) {
-			if (quotechar) {
-				if (quotechar == '\\' || (*p == quotechar && p[-1] != '\\'))
-					quotechar = '\0';
-				continue;
-			}
-			switch (*p) {
-				case '\\':
-				case '"':
-				case '\'':
-					quotechar = *p;
-					break;
-				case ' ':
-				case '\n':
-					*p = '\0';
-					if (p > args && p[-1])
-						nargc++;
-					break;
-			}
-		}
-		if (p[-1])
-			nargc++;
-		nargv = (char **) malloc (nargc * sizeof (char *));
-		nargv[0] = argv[0];
-		argc = 1;
-		for (p = args; argc < nargc; p += strlen (p) + 1)
-			if (*p)
-				nargv[argc++] = p;
-		argv = nargv;
-	}
-	for (argc--, argv++; argc; argc--, argv++) {
-		/* if looking for endmarker then check before parsing */
-		if (endmarker && strcmp (endmarker, *argv) == 0) {
-			endmarker = NULL;
-			continue;
-		}
-		if (**argv != '-') {
-			/* treat +thing as an option for C++ */
-			if (endmarker && **argv == '+')
-				continue;
-			*fp++ = argv[0];
-			continue;
-		}
-		switch (argv[0][1]) {
-			case '-':
-				endmarker = &argv[0][2];
-				if (endmarker[0] == '\0')
-					endmarker = "--";
-				break;
-			case 'D':
-				if (argv[0][2] == '\0') {
-					argv++;
-					argc--;
-				}
-				for (p = argv[0] + 2; *p; p++)
-					if (*p == '=') {
-						*p = ' ';
-						break;
-					}
-				define (argv[0] + 2, &maininclist);
-				break;
-			case 'I':
-				if (incp >= includedirs + MAXDIRS)
-					fatalerr ("Too many -I flags.\n");
-				*incp++ = argv[0] + 2;
-				if (**(incp - 1) == '\0') {
-					*(incp - 1) = *(++argv);
-					argc--;
-				}
-				break;
-			case 'U':
-				/* Undef's override all -D's so save them up */
-				numundefs++;
-				if (numundefs == 1)
-					undeflist = malloc (sizeof (char *));
-				else
-					undeflist = realloc (undeflist, numundefs * sizeof (char *));
-				if (argv[0][2] == '\0') {
-					argv++;
-					argc--;
-				}
-				undeflist[numundefs - 1] = argv[0] + 2;
-				break;
-			case 'Y':
-				defincdir = argv[0] + 2;
-				break;
-				/* do not use if endmarker processing */
-			case 'a':
-				if (endmarker)
-					break;
-				if (argv[0][2])
-					goto badopt;
-				append = TRUE;
-				break;
-			case 'b':
-				if (endmarker)
-					break;
-				if (argv[0][2])
-					goto badopt;
-                make_backup = FALSE;
-				break;
-			case 'w':
-				if (endmarker)
-					break;
-				if (argv[0][2] == '\0') {
-					argv++;
-					argc--;
-					if (argv[0])
-						width = atoi (argv[0]);
-				}
-				else
-					width = atoi (argv[0] + 2);
-				break;
-			case 'o':
-				if (endmarker)
-					break;
-				if (argv[0][2] == '\0') {
-					argv++;
-					argc--;
-					objsuffix = argv[0];
-				}
-				else
-					objsuffix = argv[0] + 2;
-				break;
-			case 'p':
-				if (endmarker)
-					break;
-				if (argv[0][2] == '\0') {
-					argv++;
-					argc--;
-					objprefix = argv[0];
-				}
-				else
-					objprefix = argv[0] + 2;
-				break;
-			case 'v':
-				if (endmarker)
-					break;
-				verbose = TRUE;
-#ifdef DEBUG
-				if (argv[0][2])
-					_debugmask = atoi (argv[0] + 2);
-#endif
-				break;
-			case 's':
-				if (endmarker)
-					break;
-				startat = argv[0] + 2;
-				if (*startat == '\0') {
-					startat = *(++argv);
-					argc--;
-				}
-				if (*startat != '#')
-					fatalerr ("-s flag's value should start %s\n", "with '#'.");
-				break;
-			case 'f':
-				if (endmarker)
-					break;
-				makefile = argv[0] + 2;
-				if (*makefile == '\0') {
-					makefile = *(++argv);
-					argc--;
-				}
-				break;
-            case 'h':
-				if (endmarker)
-					break;
-                showusage();
+        nargc = 1;
+        if ((afd = _open (argv[1] + 1, O_RDONLY)) < 0)
+            fatalerr ("cannot open \"%s\"\n", argv[1] + 1);
+        fstat (afd, &ast);
+        args = (char *) malloc (ast.st_size + 1);
+        if ((ast.st_size = _read (afd, args, ast.st_size)) < 0)
+            fatalerr ("failed to read %s\n", argv[1] + 1);
+        args[ast.st_size] = '\0';
+        _close (afd);
+        for (p = args; *p; p++) {
+            if (quotechar) {
+                if (quotechar == '\\' || (*p == quotechar && p[-1] != '\\'))
+                    quotechar = '\0';
+                continue;
+            }
+            switch (*p) {
+                case '\\':
+                case '"':
+                case '\'':
+                    quotechar = *p;
+                    break;
+                case ' ':
+                case '\n':
+                    *p = '\0';
+                    if (p > args && p[-1])
+                        nargc++;
+                    break;
+            }
+        }
+        if (p[-1])
+            nargc++;
+        nargv = (char **) malloc (nargc * sizeof (char *));
+        nargv[0] = argv[0];
+        argc = 1;
+        for (p = args; argc < nargc; p += strlen (p) + 1)
+            if (*p)
+                nargv[argc++] = p;
+        argv = nargv;
+    }
+    for (argc--, argv++; argc; argc--, argv++) {
+        /* if looking for endmarker then check before parsing */
+        if (endmarker && strcmp (endmarker, *argv) == 0) {
+            endmarker = NULL;
+            continue;
+        }
+        if (**argv != '-') {
+            /* treat +thing as an option for C++ */
+            if (endmarker && **argv == '+')
+                continue;
+            *fp++ = argv[0];
+            continue;
+        }
+        switch (argv[0][1]) {
+            case '-':
+                endmarker = &argv[0][2];
+                if (endmarker[0] == '\0')
+                    endmarker = "--";
                 break;
-			case 'm':
-				if (endmarker)
-					break;
-				if (argv[0][2])
-					goto badopt;
-				warn_multiple = TRUE;
-				break;
-
-				/* Ignore -O, -g so we can just pass ${CFLAGS} to
-				   makedepend
-				 */
-			case 'O':
-			case 'g':
-				break;
-			case 'i':
-				if (strcmp (&argv[0][1], "include") == 0) {
-					char *buf;
-					if (argc < 2)
-						fatalerr ("option -include is a "
-							"missing its parameter\n");
-					if (cmdinc_count >= MAXINCFILES)
-						fatalerr ("Too many -include flags.\n");
-					argc--;
-					argv++;
-					buf = malloc (strlen (DASH_INC_PRE) +
-						strlen (argv[0]) + strlen (DASH_INC_POST) + 1);
-					if (!buf)
-						fatalerr ("out of memory at " "-include string\n");
-					cmdinc_list[2 * cmdinc_count + 0] = argv[0];
-					cmdinc_list[2 * cmdinc_count + 1] = buf;
-					cmdinc_count++;
-					break;
-				}
-				/* intentional fall through */
-			default:
-				if (endmarker)
-					break;
-			badopt:
-				/*    fatalerr("unknown option = %s\n", argv[0]); */
-				// warning ("ignoring option %s\n", argv[0]);
-				break;
-		}
-	}
-	/* Now do the undefs from the command line */
-	for (i = 0; i < numundefs; i++)
-		undefine (undeflist[i], &maininclist);
-	if (numundefs > 0)
-		free (undeflist);
-
-	if (!defincdir) {
-#ifdef PREINCDIR
-		if (incp >= includedirs + MAXDIRS)
-			fatalerr ("Too many -I flags.\n");
-		*incp++ = PREINCDIR;
+            case 'D':
+                i = 2;
+                if (argv[0][i] == '\0') {
+                    argv++;
+                    argc--;
+                    i = 0;
+                }
+                for (p = argv[0] + i; *p; p++)
+                    if (*p == '=') {
+                        *p = ' ';
+                        break;
+                    }
+                define (argv[0] + i, &maininclist);
+                break;
+            case 'I':
+                if (strcmp(argv[0] + 2, "-") == 0) {
+                    systeminclude = FALSE;
+                } else {
+                    if (incp >= includedirs + MAXDIRS)
+                        fatalerr ("Too many -I flags.\n");
+                    /* allow both syntax -Ipath and -I path */
+                    *incp++ = argv[0] + 2;
+                    if (**(incp - 1) == '\0') {
+                        *(incp - 1) = *(++argv);
+                        argc--;
+                    }
+                }
+                break;
+            case 'U':
+                /* Undef's override all -D's so save them up */
+                numundefs++;
+                if (numundefs == 1)
+                    undeflist = malloc (sizeof (char *));
+                else
+                    undeflist = realloc (undeflist, numundefs * sizeof (char *));
+                i = 2;
+                if (argv[0][i] == '\0') {
+                    argv++;
+                    argc--;
+                    i = 0;
+                }
+                undeflist[numundefs - 1] = argv[0] + i;
+                break;
+                /* do not use if endmarker processing */
+            case 'a':
+                if (endmarker)
+                    break;
+                if (argv[0][2])
+                    goto badopt;
+                append = TRUE;
+                break;
+            case 'b':
+                if (endmarker)
+                    break;
+                if (argv[0][2])
+                    goto badopt;
+                make_backup = FALSE;
+                break;
+            case 'w':
+                if (endmarker)
+                    break;
+                if (argv[0][2] == '\0') {
+                    /* syntax -w 99 */
+                    argv++;
+                    argc--;
+                    if (argv[0])
+                        width = atoi (argv[0]);
+                } else {
+                    /* syntax -w99 */
+                    width = atoi (argv[0] + 2);
+                }
+                break;
+            case 'o':
+                if (endmarker)
+                    break;
+                if (argv[0][2] == '\0') {
+                    /* syntax -o .ext */
+                    argv++;
+                    argc--;
+                    objsuffix = argv[0];
+                } else {
+                    /* syntax -o.ext */
+                    objsuffix = argv[0] + 2;
+                }
+                break;
+            case 'p':
+                if (endmarker)
+                    break;
+                if (argv[0][2] == '\0') {
+                    /* syntax -p path */
+                    argv++;
+                    argc--;
+                    objprefix = argv[0];
+                } else {
+                    /* syntax -ppath */
+                    objprefix = argv[0] + 2;
+                }
+                break;
+            case 'v':
+                if (endmarker)
+                    break;
+                verbose = TRUE;
+#ifdef DEBUG
+                if (argv[0][2])
+                    _debugmask = atoi (argv[0] + 2);
 #endif
-#ifdef __UNIXOS2__
-		{
-			char *emxinc = getenv ("C_INCLUDE_PATH");
-			/* can have more than one component */
-			if (emxinc) {
-				char *beg, *end;
-				beg = (char *) strdup (emxinc);
-				for (;;) {
-					end = (char *) strchr (beg, ';');
-					if (end)
-						*end = 0;
-					if (incp >= includedirs + MAXDIRS)
-						fatalerr ("Too many include dirs\n");
-					*incp++ = beg;
-					if (!end)
-						break;
-					beg = end + 1;
-				}
-			}
-		}
-#else	/* !__UNIXOS2__, does not use INCLUDEDIR at all */
-		if (incp >= includedirs + MAXDIRS)
-			fatalerr ("Too many -I flags.\n");
-		*incp++ = INCLUDEDIR;
-#endif
+                break;
+            case 's':
+                if (endmarker)
+                    break;
+                startat = argv[0] + 2;
+                if (*startat == '\0') {
+                    startat = *(++argv);
+                    argc--;
+                }
+                if (*startat != '#')
+                    fatalerr ("-s flag's value should start %s\n", "with '#'.");
+                break;
+            case 'f':
+                if (endmarker)
+                    break;
+                makefile = argv[0] + 2;
+                if (*makefile == '\0') {
+                    makefile = *(++argv);
+                    argc--;
+                }
+                break;
+            case 'h':
+                if (endmarker)
+                    break;
+                if (argv[0][2])
+                    goto badopt;
+                showhelp = TRUE;
+                break;
+            case 'm':
+                if (endmarker)
+                    break;
+                if (argv[0][2])
+                    goto badopt;
+                warn_multiple = TRUE;
+                break;
 
-#ifdef EXTRAINCDIR
-		if (incp >= includedirs + MAXDIRS)
-			fatalerr ("Too many -I flags.\n");
-		*incp++ = EXTRAINCDIR;
-#endif
+            case 'i':
+                if (strcmp (&argv[0][1], "include") == 0) {
+                    char *buf;
+                    if (argc < 2)
+                        fatalerr ("option -include is a missing its parameter\n");
+                    if (cmdinc_count >= MAXINCFILES)
+                        fatalerr ("Too many -include flags.\n");
+                    argc--;
+                    argv++;
+                    buf = malloc (strlen (DASH_INC_PRE) +
+                        strlen (argv[0]) + strlen (DASH_INC_POST) + 1);
+                    if (!buf)
+                        fatalerr ("out of memory at " "-include string\n");
+                    cmdinc_list[2 * cmdinc_count + 0] = argv[0];
+                    cmdinc_list[2 * cmdinc_count + 1] = buf;
+                    cmdinc_count++;
+                    break;
+                }
+                /* intentional fall through */
+            default:
+                if (endmarker)
+                    break;
+            badopt:
+                warning ("ignoring option %s\n", argv[0]);
+                break;
+        }
+    }
 
-#ifdef POSTINCDIR
-		if (incp >= includedirs + MAXDIRS)
-			fatalerr ("Too many -I flags.\n");
-		*incp++ = POSTINCDIR;
-#endif
-	}
-	else if (*defincdir) {
-		if (incp >= includedirs + MAXDIRS)
-			fatalerr ("Too many -I flags.\n");
-		*incp++ = defincdir;
-	}
+    if (showhelp)
+        showusage();
 
-	redirect (startat, makefile);
+    /* Now do the undefs from the command line */
+    for (i = 0; i < numundefs; i++)
+        undefine (undeflist[i], &maininclist);
+    if (numundefs > 0)
+        free (undeflist);
 
-	/*
-	 * catch signals.
-	 */
+    if (systeminclude) {
+        #ifdef PREINCDIR
+            if (incp >= includedirs + MAXDIRS)
+                fatalerr ("Too many -I flags.\n");
+            *incp++ = PREINCDIR;
+        #endif
+        #if defined __UNIXOS2__  || defined WIN32
+            {
+                #if defined __UNIXOS2__
+                char *emxinc = getenv("C_INCLUDE_PATH");
+                #else
+                char *emxinc = getenv("INCLUDE");
+                #endif
+                /* can have more than one component */
+                if (emxinc) {
+                    char *inc, *buffer;
+                    buffer = copy(emxinc);  /* make a copy so that we can tokenize it */
+                    for (inc = strtok(buffer, ";"); inc!=NULL; inc = strtok(NULL, ";")) {
+                        if (incp >= includedirs + MAXDIRS)
+                            fatalerr("Too many include dirs\n");
+                        *incp++ = copy(inc);    /* make a copy, because buffer will get freed */
+                    }
+                    free(buffer);
+                }
+            }
+        #else
+            /* not Linux/Unix, OS2 or Windows, use fixed setting or nothing
+             * at all
+             */
+            if (incp >= includedirs + MAXDIRS)
+                fatalerr ("Too many -I flags.\n");
+            *incp++ = INCLUDEDIR;
+        #endif
+
+        #ifdef EXTRAINCDIR
+            if (incp >= includedirs + MAXDIRS)
+                fatalerr ("Too many -I flags.\n");
+            *incp++ = EXTRAINCDIR;
+        #endif
+
+        #ifdef POSTINCDIR
+            if (incp >= includedirs + MAXDIRS)
+                fatalerr ("Too many -I flags.\n");
+            *incp++ = POSTINCDIR;
+        #endif
+    }
+
+    redirect (startat, makefile);
+
+    /*
+     * catch signals.
+     */
 #ifdef USGISH
 
 /*  should really reset SIGINT to SIG_IGN if it was.  */
 #ifdef SIGHUP
-	signal (SIGHUP, catch);
+    signal (SIGHUP, catch);
 #endif
-	signal (SIGINT, catch);
+    signal (SIGINT, catch);
 #ifdef SIGQUIT
-	signal (SIGQUIT, catch);
+    signal (SIGQUIT, catch);
 #endif
-	signal (SIGILL, catch);
+    signal (SIGILL, catch);
 #ifdef SIGBUS
-	signal (SIGBUS, catch);
+    signal (SIGBUS, catch);
 #endif
-	signal (SIGSEGV, catch);
+    signal (SIGSEGV, catch);
 #ifdef SIGSYS
-	signal (SIGSYS, catch);
+    signal (SIGSYS, catch);
 #endif
 #else
-	sig_act.sa_handler = catch;
+    sig_act.sa_handler = catch;
 #if defined(_POSIX_SOURCE) || !defined(X_NOT_POSIX)
-	sigemptyset (&sig_act.sa_mask);
-	sigaddset (&sig_act.sa_mask, SIGINT);
-	sigaddset (&sig_act.sa_mask, SIGQUIT);
+    sigemptyset (&sig_act.sa_mask);
+    sigaddset (&sig_act.sa_mask, SIGINT);
+    sigaddset (&sig_act.sa_mask, SIGQUIT);
 #ifdef SIGBUS
-	sigaddset (&sig_act.sa_mask, SIGBUS);
+    sigaddset (&sig_act.sa_mask, SIGBUS);
 #endif
-	sigaddset (&sig_act.sa_mask, SIGILL);
-	sigaddset (&sig_act.sa_mask, SIGSEGV);
-	sigaddset (&sig_act.sa_mask, SIGHUP);
-	sigaddset (&sig_act.sa_mask, SIGPIPE);
+    sigaddset (&sig_act.sa_mask, SIGILL);
+    sigaddset (&sig_act.sa_mask, SIGSEGV);
+    sigaddset (&sig_act.sa_mask, SIGHUP);
+    sigaddset (&sig_act.sa_mask, SIGPIPE);
 #ifdef SIGSYS
-	sigaddset (&sig_act.sa_mask, SIGSYS);
+    sigaddset (&sig_act.sa_mask, SIGSYS);
 #endif
 #else
-	sig_act.sa_mask = ((1 << (SIGINT - 1))
-		| (1 << (SIGQUIT - 1))
+    sig_act.sa_mask = ((1 << (SIGINT - 1))
+        | (1 << (SIGQUIT - 1))
 #ifdef SIGBUS
-		| (1 << (SIGBUS - 1))
+        | (1 << (SIGBUS - 1))
 #endif
-		| (1 << (SIGILL - 1))
-		| (1 << (SIGSEGV - 1))
-		| (1 << (SIGHUP - 1))
-		| (1 << (SIGPIPE - 1))
+        | (1 << (SIGILL - 1))
+        | (1 << (SIGSEGV - 1))
+        | (1 << (SIGHUP - 1))
+        | (1 << (SIGPIPE - 1))
 #ifdef SIGSYS
-		| (1 << (SIGSYS - 1))
+        | (1 << (SIGSYS - 1))
 #endif
-		);
+        );
 #endif /* _POSIX_SOURCE */
-	sig_act.sa_flags = 0;
-	sigaction (SIGHUP, &sig_act, (struct sigaction *) 0);
-	sigaction (SIGINT, &sig_act, (struct sigaction *) 0);
-	sigaction (SIGQUIT, &sig_act, (struct sigaction *) 0);
-	sigaction (SIGILL, &sig_act, (struct sigaction *) 0);
+    sig_act.sa_flags = 0;
+    sigaction (SIGHUP, &sig_act, (struct sigaction *) 0);
+    sigaction (SIGINT, &sig_act, (struct sigaction *) 0);
+    sigaction (SIGQUIT, &sig_act, (struct sigaction *) 0);
+    sigaction (SIGILL, &sig_act, (struct sigaction *) 0);
 #ifdef SIGBUS
-	sigaction (SIGBUS, &sig_act, (struct sigaction *) 0);
+    sigaction (SIGBUS, &sig_act, (struct sigaction *) 0);
 #endif
-	sigaction (SIGSEGV, &sig_act, (struct sigaction *) 0);
+    sigaction (SIGSEGV, &sig_act, (struct sigaction *) 0);
 #ifdef SIGSYS
-	sigaction (SIGSYS, &sig_act, (struct sigaction *) 0);
+    sigaction (SIGSYS, &sig_act, (struct sigaction *) 0);
 #endif
 #endif /* USGISH */
 
-	/*
-	 * now peruse through the list of files.
-	 */
-	for (fp = filelist; *fp; fp++) {
-		DBG_PRINT (stderr, "file: %s\n", *fp);
-		filecontent = getfile (*fp);
-		setfile_cmdinc (filecontent, cmdinc_count, cmdinc_list);
-		ip = newinclude (*fp, (char *) NULL);
+    /*
+     * now peruse through the list of files.
+     */
+    for (fp = filelist; *fp; fp++) {
+        filecontent = getfile (*fp);
+        setfile_cmdinc (filecontent, cmdinc_count, cmdinc_list);
+        ip = newinclude (*fp, (char *) NULL);
 
-		find_includes (filecontent, ip, ip, 0, TRUE);
-		freefile (filecontent);
-		recursive_pr_include (ip, ip->i_file, base_name (*fp));
-		inc_clean ();
-	}
-	if (printed)
-		printf ("\n");
-	return 0;
+        find_includes (filecontent, ip, ip, 0, TRUE);
+        freefile (filecontent);
+        recursive_pr_include (ip, ip->i_file, base_name (*fp));
+        inc_clean ();
+    }
+    if (printed)
+        printf ("\n");
+    return 0;
 }
 
 #ifdef __UNIXOS2__
@@ -560,79 +573,79 @@ int main (int argc, char *argv[])
  */
 static int elim_cr (char *buf, int sz)
 {
-	int i, wp;
-	for (i = wp = 0; i < sz; i++) {
-		if (buf[i] != '\r')
-			buf[wp++] = buf[i];
-	}
-	return wp;
+    int i, wp;
+    for (i = wp = 0; i < sz; i++) {
+        if (buf[i] != '\r')
+            buf[wp++] = buf[i];
+    }
+    return wp;
 }
 #endif
 
-struct filepointer *getfile (char *file)
+struct filepointer *getfile (const char *file)
 {
-	int fd;
-	struct filepointer *content;
-	struct stat st;
+    int fd;
+    struct filepointer *content;
+    struct stat st;
 
-	content = (struct filepointer *) malloc (sizeof (struct filepointer));
-	content->f_name = file;
-	if ((fd = _open (file, O_RDONLY)) < 0) {
-		warning ("cannot open \"%s\"\n", file);
-		content->f_p = content->f_base = content->f_end = (char *) malloc (1);
-		*content->f_p = '\0';
-		return (content);
-	}
-	fstat (fd, &st);
-	content->f_base = (char *) malloc (st.st_size + 1);
-	if (content->f_base == NULL)
-		fatalerr ("cannot allocate mem\n");
-	if ((st.st_size = _read (fd, content->f_base, st.st_size)) < 0)
-		fatalerr ("failed to read %s\n", file);
+    content = (struct filepointer *) malloc (sizeof (struct filepointer));
+    content->f_name = file;
+    if ((fd = _open (file, O_RDONLY)) < 0) {
+        warning ("cannot open \"%s\"\n", file);
+        content->f_p = content->f_base = content->f_end = (char *) malloc (1);
+        *content->f_p = '\0';
+        return (content);
+    }
+    fstat (fd, &st);
+    content->f_base = (char *) malloc (st.st_size + 1);
+    if (content->f_base == NULL)
+        fatalerr ("cannot allocate mem\n");
+    if ((st.st_size = _read (fd, content->f_base, st.st_size)) < 0)
+        fatalerr ("failed to read %s\n", file);
 #ifdef __UNIXOS2__
-	st.st_size = elim_cr (content->f_base, st.st_size);
+    st.st_size = elim_cr (content->f_base, st.st_size);
 #endif
-	_close (fd);
-	content->f_len = st.st_size + 1;
-	content->f_p = content->f_base;
-	content->f_end = content->f_base + st.st_size;
-	*content->f_end = '\0';
-	content->f_line = 0;
-	content->cmdinc_count = 0;
-	content->cmdinc_list = NULL;
-	content->cmdinc_line = 0;
-	return (content);
+    _close (fd);
+    content->f_len = st.st_size + 1;
+    content->f_p = content->f_base;
+    content->f_end = content->f_base + st.st_size;
+    *content->f_end = '\0';
+    content->f_line = 0;
+    content->cmdinc_count = 0;
+    content->cmdinc_list = NULL;
+    content->cmdinc_line = 0;
+    return (content);
 }
 
 void setfile_cmdinc (struct filepointer *filep, long count, char **list)
 {
-	filep->cmdinc_count = count;
-	filep->cmdinc_list = list;
-	filep->cmdinc_line = 0;
+    filep->cmdinc_count = count;
+    filep->cmdinc_list = list;
+    filep->cmdinc_line = 0;
 }
 
 void freefile (struct filepointer *fp)
 {
-	free (fp->f_base);
-	free (fp);
+    free (fp->f_base);
+    free (fp);
 }
 
-char *copy (char *str)
+char *copy (const char *str)
 {
-	char *p = (char *) malloc (strlen (str) + 1);
+    char *p = (char *) malloc (strlen (str) + 1);
 
-	strcpy (p, str);
-	return (p);
+    strcpy (p, str);
+    return (p);
 }
 
-int match (char *str, char **list)
+int match (const char *str, const char **list)
 {
-	int i;
+    int i;
 
-	for (i = 0; *list; i++, list++)
-		if (strcmp (str, *list) == 0)
-			return (i);
-	return (-1);
+    for (i = 0; *list; i++, list++)
+        if (strcmp (str, *list) == 0)
+            return (i);
+    return (-1);
 }
 
 /*
@@ -641,281 +654,315 @@ int match (char *str, char **list)
  */
 char *getnextline (struct filepointer *filep)
 {
-	char *p,							  /* walking pointer */
-	 *eof,							  /* end of file pointer */
-	 *bol;							  /* beginning of line pointer */
-	int lineno;						  /* line number */
-	boolean whitespace = FALSE;
+    char *p,                              /* walking pointer */
+     *eof,                            /* end of file pointer */
+     *bol;                            /* beginning of line pointer */
+    int lineno;                       /* line number */
+    boolean whitespace = FALSE;
 
-	/*
-	 * Fake the "-include" line files in form of #include to the
-	 * start of each file.
-	 */
-	if (filep->cmdinc_line < filep->cmdinc_count) {
-		char *inc = filep->cmdinc_list[2 * filep->cmdinc_line + 0];
-		char *buf = filep->cmdinc_list[2 * filep->cmdinc_line + 1];
-		filep->cmdinc_line++;
-		sprintf (buf, "%s%s%s", DASH_INC_PRE, inc, DASH_INC_POST);
-		DBG_PRINT (stderr, "%s\n", buf);
-		return (buf);
-	}
+    /*
+     * Fake the "-include" line files in form of #include to the
+     * start of each file.
+     */
+    if (filep->cmdinc_line < filep->cmdinc_count) {
+        char *inc = filep->cmdinc_list[2 * filep->cmdinc_line + 0];
+        char *buf = filep->cmdinc_list[2 * filep->cmdinc_line + 1];
+        filep->cmdinc_line++;
+        sprintf (buf, "%s%s%s", DASH_INC_PRE, inc, DASH_INC_POST);
+        DBG_PRINT (stderr, "%s\n", buf);
+        return (buf);
+    }
 
-	p = filep->f_p;
-	eof = filep->f_end;
-	if (p >= eof)
-		return ((char *) NULL);
-	lineno = filep->f_line;
+    p = filep->f_p;
+    eof = filep->f_end;
+    if (p >= eof)
+        return ((char *) NULL);
+    lineno = filep->f_line;
 
-	for (bol = p--; ++p < eof;) {
-		if ((bol == p) && ((*p == ' ') || (*p == '\t'))) {
-			/* Consume leading white-spaces for this line */
-			while (((p + 1) < eof) && ((*p == ' ') || (*p == '\t'))) {
-				p++;
-				bol++;
-			}
-			whitespace = TRUE;
-		}
+    for (bol = p--; ++p < eof;) {
+        if ((bol == p) && ((*p == ' ') || (*p == '\t'))) {
+            /* Consume leading white-spaces for this line */
+            while (((p + 1) < eof) && ((*p == ' ') || (*p == '\t'))) {
+                p++;
+                bol++;
+            }
+            whitespace = TRUE;
+        }
 
-		if (*p == '/' && (p + 1) < eof && *(p + 1) == '*') {
-			/* Consume C comments */
-			*(p++) = ' ';
-			*(p++) = ' ';
-			while (p < eof && *p) {
-				if (*p == '*' && (p + 1) < eof && *(p + 1) == '/') {
-					*(p++) = ' ';
-					*(p++) = ' ';
-					break;
-				}
-				if (*p == '\n')
-					lineno++;
-				*(p++) = ' ';
-			}
-			--p;
-		}
-		else if (*p == '/' && (p + 1) < eof && *(p + 1) == '/') {
-			/* Consume C++ comments */
-			*(p++) = ' ';
-			*(p++) = ' ';
-			while (p < eof && *p) {
-				if (*p == '\\' && (p + 1) < eof && *(p + 1) == '\n') {
-					*(p++) = ' ';
-					lineno++;
-				}
-				else if (*p == '?' && (p + 3) < eof &&
-					*(p + 1) == '?' && *(p + 2) == '/' && *(p + 3) == '\n') {
-					*(p++) = ' ';
-					*(p++) = ' ';
-					*(p++) = ' ';
-					lineno++;
-				}
-				else if (*p == '\n')
-					break;			  /* to process end of line */
-				*(p++) = ' ';
-			}
-			--p;
-		}
-		else if (*p == '\\' && (p + 1) < eof && *(p + 1) == '\n') {
-			/* Consume backslash line terminations */
-			*(p++) = ' ';
-			*p = ' ';
-			lineno++;
-		}
-		else if (*p == '?' && (p + 3) < eof &&
-			*(p + 1) == '?' && *(p + 2) == '/' && *(p + 3) == '\n') {
-			/* Consume trigraph'ed backslash line terminations */
-			*(p++) = ' ';
-			*(p++) = ' ';
-			*(p++) = ' ';
-			*p = ' ';
-			lineno++;
-		}
-		else if (*p == '\n') {
-			lineno++;
-			if (*bol == '#') {
-				char *cp;
+        if (*p == '/' && (p + 1) < eof && *(p + 1) == '*') {
+            /* Consume C comments */
+            *(p++) = ' ';
+            *(p++) = ' ';
+            while (p < eof && *p) {
+                if (*p == '*' && (p + 1) < eof && *(p + 1) == '/') {
+                    *(p++) = ' ';
+                    *(p++) = ' ';
+                    break;
+                }
+                if (*p == '\n')
+                    lineno++;
+                *(p++) = ' ';
+            }
+            --p;
+        }
+        else if (*p == '/' && (p + 1) < eof && *(p + 1) == '/') {
+            /* Consume C++ comments */
+            *(p++) = ' ';
+            *(p++) = ' ';
+            while (p < eof && *p) {
+                if (*p == '\\' && (p + 1) < eof && *(p + 1) == '\n') {
+                    *(p++) = ' ';
+                    lineno++;
+                }
+                else if (*p == '?' && (p + 3) < eof &&
+                    *(p + 1) == '?' && *(p + 2) == '/' && *(p + 3) == '\n') {
+                    *(p++) = ' ';
+                    *(p++) = ' ';
+                    *(p++) = ' ';
+                    lineno++;
+                }
+                else if (*p == '\n')
+                    break;            /* to process end of line */
+                *(p++) = ' ';
+            }
+            --p;
+        }
+        else if (*p == '\\' && (p + 1) < eof && *(p + 1) == '\n') {
+            /* Consume backslash line terminations */
+            *(p++) = ' ';
+            *p = ' ';
+            lineno++;
+        }
+        else if (*p == '?' && (p + 3) < eof &&
+            *(p + 1) == '?' && *(p + 2) == '/' && *(p + 3) == '\n') {
+            /* Consume trigraph'ed backslash line terminations */
+            *(p++) = ' ';
+            *(p++) = ' ';
+            *(p++) = ' ';
+            *p = ' ';
+            lineno++;
+        }
+        else if (*p == '\n') {
+            lineno++;
+            if (*bol == '#') {
+                char *cp;
 
-				*(p++) = '\0';
-				/* punt lines with just # (yacc generated) */
-				for (cp = bol + 1; *cp && (*cp == ' ' || *cp == '\t'); cp++);
-				if (*cp)
-					goto done;
-				--p;
-			}
-			bol = p + 1;
-			whitespace = FALSE;
-		}
-	}
-	if (*bol != '#')
-		bol = NULL;
+                *(p++) = '\0';
+                /* punt lines with just # (yacc generated) */
+                for (cp = bol + 1; *cp && (*cp == ' ' || *cp == '\t'); cp++);
+                if (*cp)
+                    goto done;
+                --p;
+            }
+            bol = p + 1;
+            whitespace = FALSE;
+        }
+    }
+    if (*bol != '#')
+        bol = NULL;
  done:
-	// if (bol && whitespace) {
-	// 	warning ("%s:  non-portable whitespace encountered at line %d\n",
-	// 		filep->f_name, lineno);
-	// }
-	filep->f_p = p;
-	filep->f_line = lineno;
+    // if (bol && whitespace) {
+    //  warning ("%s:  non-portable whitespace encountered at line %d\n",
+    //      filep->f_name, lineno);
+    // }
+    filep->f_p = p;
+    filep->f_line = lineno;
 #ifdef DEBUG_DUMP
-	if (bol)
-		DBG_PRINT (stderr, "%s\n", bol);
+    if (bol)
+        DBG_PRINT (stderr, "%s\n", bol);
 #endif
-	return (bol);
+    return (bol);
 }
 
 /*
  * Strip the file name down to what we want to see in the Makefile.
- * It will have objprefix and objsuffix around it.
+ * (It will get objprefix and objsuffix around it.)
  */
 char *base_name (char *file)
 {
-	char *p;
+    char *p;
 
-	file = copy (file);
-	for (p = file + strlen (file); p > file && *p != '.'; p--);
+    file = copy (file);
+    for (p = file + strlen (file); p > file && *p != '.'; p--)
+        /*EMPTY*/;
 
-	if (*p == '.')
-		*p = '\0';
-	return (file);
+    if (*p == '.')
+        *p = '\0';
+
+    p = file + strlen (file);
+#if defined WIN32
+    while (p > file && *p != '/' && *p != '\\')
+        p--;
+#else
+    while (p > file && *p != '/')
+        p--;
+#endif
+    if (p != file)
+        file = p + 1;   /* return name after last path */
+
+    return file;
 }
 
 #if defined(USG) && !defined(CRAY) && !defined(SVR4) && !defined(__UNIXOS2__) && !defined(clipper) && !defined(__clipper__)
 int rename (char *from, char *to)
 {
-	(void) unlink (to);
-	if (link (from, to) == 0) {
-		unlink (from);
-		return 0;
-	}
-	else {
-		return -1;
-	}
+    (void) unlink (to);
+    if (link (from, to) == 0) {
+        unlink (from);
+        return 0;
+    }
+    else {
+        return -1;
+    }
 }
 #endif /* USGISH */
 
-void redirect (char *line, char *makefile)
+void redirect (const char *line, const char *makefile)
 {
-	struct stat st;
-	FILE *fdin, *fdout;
-	char backup[BUFSIZ], buf[BUFSIZ];
-	boolean found = FALSE;
-	int len;
+    struct stat st;
+    FILE *fdin, *fdout;
+    char backup[BUFSIZ], buf[BUFSIZ];
+    boolean found = FALSE;
+    int len;
 
-	/*
-	 * if makefile is "-" then let it pour onto stdout.
-	 */
-	if (makefile && *makefile == '-' && *(makefile + 1) == '\0') {
-		puts (line);
-		return;
-	}
+    /*
+     * if makefile is "-" then let it pour onto stdout.
+     */
+    if (makefile && *makefile == '-' && *(makefile + 1) == '\0') {
+        puts (line);
+        return;
+    }
 
-	/*
-	 * use a default makefile is not specified.
-	 */
-	if (!makefile) {
-		if (stat ("Makefile", &st) == 0)
-			makefile = "Makefile";
-		else if (stat ("makefile", &st) == 0)
-			makefile = "makefile";
-		else
-			fatalerr ("[mM]akefile is not present\n");
-	}
-	else {
+    /*
+     * use a default makefile when none is specified.
+     */
+    if (!makefile) {
+        if (stat ("Makefile", &st) == 0)
+            makefile = "Makefile";
+        else if (stat ("makefile", &st) == 0)
+            makefile = "makefile";
+        else
+            fatalerr ("[mM]akefile is not present\n");
+    }
+    else {
         if (stat (makefile, &st) != 0) {
             /* create a dummy makefile for the output */
-	        if ((fdin = fopen (makefile, OPEN_WRITE_TEXT)) != NULL) {
+            if ((fdin = fopen (makefile, OPEN_WRITE_TEXT)) != NULL) {
                 fprintf(fdin, "# GENERATED BY MAKEDEPEND\n\n");
                 fclose(fdin);
             }
         }
-		stat (makefile, &st);
+        stat (makefile, &st);
     }
-	if ((fdin = fopen (makefile, OPEN_READ_TEXT)) == NULL)
-		fatalerr ("cannot open \"%s\"\n", makefile);
-	sprintf (backup, "%s.bak", makefile);
-	_unlink (backup);
+    if ((fdin = fopen (makefile, OPEN_READ_TEXT)) == NULL)
+        fatalerr ("cannot open \"%s\"\n", makefile);
+    sprintf (backup, "%s.bak", makefile);
+    _unlink (backup);
 #if defined(WIN32) || defined(__UNIXOS2__) || defined(__CYGWIN__)
-	fclose (fdin);
+    fclose (fdin);
 #endif
-	if (rename (makefile, backup) < 0)
-		fatalerr ("cannot rename %s to %s\n", makefile, backup);
+    if (rename (makefile, backup) < 0)
+        fatalerr ("cannot rename %s to %s\n", makefile, backup);
 #if defined(WIN32) || defined(__UNIXOS2__) || defined(__CYGWIN__)
-	if ((fdin = fopen (backup, OPEN_READ_TEXT)) == NULL)
-		fatalerr ("cannot open \"%s\"\n", backup);
+    if ((fdin = fopen (backup, OPEN_READ_TEXT)) == NULL)
+        fatalerr ("cannot open \"%s\"\n", backup);
 #endif
-	if ((fdout = freopen (makefile, OPEN_WRITE_TEXT, stdout)) == NULL)
-		fatalerr ("cannot open \"%s\"\n", backup);
-	len = strlen (line);
-	while (!found && fgets (buf, BUFSIZ, fdin)) {
-		if (*buf == '#' && strncmp (line, buf, len) == 0)
-			found = TRUE;
-		fputs (buf, fdout);
-	}
-	if (!found) {
-		if (verbose)
-			warning ("Adding new delimiting line and dependencies...\n");
-		puts (line);				  /* same as fputs(fdout); but with newline */
-	}
-	else if (append) {
-		while (fgets (buf, BUFSIZ, fdin)) {
-			fputs (buf, fdout);
-		}
-	}
+    if ((fdout = freopen (makefile, OPEN_WRITE_TEXT, stdout)) == NULL)
+        fatalerr ("cannot open \"%s\"\n", backup);
+    len = strlen (line);
+    while (!found && fgets (buf, BUFSIZ, fdin)) {
+        if (*buf == '#' && strncmp (line, buf, len) == 0)
+            found = TRUE;
+        fputs (buf, fdout);
+    }
+    if (!found) {
+        if (verbose)
+            warning ("Adding new delimiting line and dependencies...\n");
+        puts (line);                  /* same as fputs(fdout); but with newline */
+    }
+    else if (append) {
+        while (fgets (buf, BUFSIZ, fdin)) {
+            fputs (buf, fdout);
+        }
+    }
     fclose(fdin);
     if (!make_backup)
         _unlink (backup);
-	fflush (fdout);
+    fflush (fdout);
     /* don't close fdout, because it is the re-opened stdout */
 #if defined(USGISH) || defined(_SEQUENT_) || defined(USE_CHMOD)
-	_chmod (makefile, st.st_mode);
+    _chmod (makefile, st.st_mode);
 #else
-	fchmod (fileno (fdout), st.st_mode);
+    fchmod (fileno (fdout), st.st_mode);
 #endif /* USGISH */
 }
 
-void fatalerr (char *msg, ...)
+void fatalerr (const char *msg, ...)
 {
-	va_list args;
-	fprintf (stderr, "%s: error:  ", ProgramName);
-	va_start (args, msg);
-	vfprintf (stderr, msg, args);
-	va_end (args);
-	exit (1);
+    va_list args;
+    fprintf (stderr, "%s: error:  ", ProgramName);
+    va_start (args, msg);
+    vfprintf (stderr, msg, args);
+    va_end (args);
+    exit (1);
 }
 
-void warning (char *msg, ...)
+void warning (const char *msg, ...)
 {
-	va_list args;
-	fprintf (stderr, "%s: warning:  ", ProgramName);
-	va_start (args, msg);
-	vfprintf (stderr, msg, args);
-	va_end (args);
+    va_list args;
+    fprintf (stderr, "%s: warning:  ", ProgramName);
+    va_start (args, msg);
+    vfprintf (stderr, msg, args);
+    va_end (args);
 }
 
-void warning1 (char *msg, ...)
+void warning1 (const char *msg, ...)
 {
-	va_list args;
-	va_start (args, msg);
-	vfprintf (stderr, msg, args);
-	va_end (args);
+    va_list args;
+    va_start (args, msg);
+    vfprintf (stderr, msg, args);
+    va_end (args);
 }
 
 void showusage (void)
 {
-    printf("makedepend 1.0.5\n\n");
+    printf("makedepend 1.0.6\n\n");
     printf("Usage: makedepend [options] <file1.c> [file2.c] [...]\n\n");
     printf("-D<name>\tAdd a definition for <name> (with value 1).\n");
     printf("-D<name>=<def>\tAdd a definition for <name>, with value <def>.\n");
     printf("-I<directory>\tAdd the directory to the list of include directories.\n");
-    printf("-Y<directory>\tUse this directory exclusively for includes.\n");
-    printf("-a\t\tAppend dependencies to the end of the file instead of replacing\n\t\tthem.\n");
+    printf("-I-\t\tSkip the standard (compiler-defined) include directories.\n");
+    printf("-U<name>\tUndefine <name>.\n");
+    printf("-a\t\tAppend dependencies to the end of the file instead of replacing\n"
+           "\t\tthem.\n");
     printf("-b\t\tDo not create a backup file of the input makefile.\n");
-    printf("-f<makefile>\tSet the file into which the output is written (default is\n\t\t\"Makefile\"). Setting -f- sends the output to standard output.\n");
+    printf("-f<makefile>\tSet the file into which the output is written (default is\n"
+           "\t\t\"Makefile\"). Setting -f- sends the output to standard output.\n");
+    printf("-h\t\tShow usage information (this text).\n");
     printf("-m\t\tWarn about multiple inclusions.\n");
-    printf("-o<suffix>\tObject file extension. The default is \".o\". On Microsoft Windows, you should typically use \"-o.obj\"\n");
-    printf("-p<prefix>\tObject file prefix, typically used to set a directory.\n");
-    printf("-s<delimitor>\tDelimiter string in the makefile, below which generated\n\t\tdependencies are written.\n");
+    printf("-o<suffix>\tObject file extension. The default is \".o\".\n");
+    printf("-p<prefix>\tObject file prefix, typically used to set a directory. If the\n"
+           "\t\tprefix starts with a \"-\", that prefix is stripped from the\n"
+           "\t\tobject file if the start of the object file matches the word\n"
+           "\t\tthat follows the \"-\".\n");
+    printf("-s<delimitor>\tDelimiter string in the makefile, below which generated\n"
+           "\t\tdependencies are written.\n");
     printf("-v\t\tVerbose output.\n");
-    printf("-w<width>\tMaximum line width of the generated output (default is 78\n\t\tcharacters).\n");
-    printf("--\t\tAny unrecognized argument following a double hyphen is silently\n\t\tignored. Options that are recognized are still handled.\n");
+    printf("-w<width>\tMaximum line width of the generated output (default is 78\n"
+           "\t\tcharacters).\n");
+    printf("--\t\tAny -D, -I or -U argument following a double hyphen is handled,\n"
+           "\t\tbut other options are silently ignored. Use another double\n"
+           "\t\thyphen to toggle back to normal mode.\n");
+    printf("-include file\tThe file is set to be implicitly included in every source file.\n");
 
-    exit (1);
+    if (verbose) {
+        const struct symtab *psymp = predefs;
+        printf("\nPredefined variables:\n");
+        while (psymp->s_name) {
+            printf("\t%-16s = %s\n", psymp->s_name, psymp->s_value);
+            psymp++;
+        }
+    }
+
+    exit(1);
 }
