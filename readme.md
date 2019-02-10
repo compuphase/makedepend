@@ -2,7 +2,7 @@
 
 
 ## Introduction
------
+
 makedepend scans a list of C and C++ source files for `#include` statements,
 and then rewrites the makefile to add these header files as "dependencies" of
 the target for the C/C++ files. This will cause the `make` program to recompile
@@ -14,7 +14,7 @@ the original utility. See section [Change List](#Change-List) for details.
 
 
 ## Usage
------
+
 In a typical case, a makefile contains a pseudo-target to update the dependencies.
 The pseudo-target is typically called "depend". Thus, when you `make depend`,
 the dependencies for the C/C++ sources get rebuilt.
@@ -81,88 +81,117 @@ the GNU `make` syntax; other `make`'s may need a different syntax).
 
 
 ## Options
------
-`-D`*name=def* or `-D`*name*
-:   Defines a symbol for the makedepend preprocessor (which works like the
-    C/C++ preprocessor). When no value is explicitly defined, the symbol is
-    as "1".
+<dl>
+<dt> <code>-D</code>name=def </dt>
+<dt> <code>-D</code>name </dt>
+<dd>
+  Defines a symbol for the makedepend preprocessor (which works like the
+  C/C++ preprocessor). When no value is explicitly defined, the symbol is
+  as "1".
+</dd>
 
-`-I`*path*
-:   Adds a path to its list of directories that makedepend searches for
-    files when it encounters a `#include` directive.
+<dt> <code>-I</code>path </dt>
+<dd>        
+  Adds a path to its list of directories that makedepend searches for
+  files when it encounters a <code>#include</code> directive.
+  <br><br>
+  By default, makedepend appends the standard include directories at the end
+  of the directory list. In Linux, Unix and OS/2, makedepend evaluates the
+  C_INCLUDE_PATH environment variable for the standard includes; in
+  Microsoft Windows, makedepend evaluates the INCLUDE environment
+  variable. When the option <code>-I-</code> is set, makedepend does <em>not</em> append
+  the standard include directories (and thus prevents makedepend from
+  searching the standard include directories).
+</dd>
 
-    By default, makedepend appends the standard include directories at the end
-    of the directory list. In Linux, Unix and OS/2, makedepend evaluates the
-    `C_INCLUDE_PATH` environment variable for the standard includes; in
-    Microsoft Windows, makedepend evaluates the `INCLUDE` environment
-    variable. When the option `-I-` is set, makedepend does *not* append
-    the standard include directories (and thus prevents makedepend from
-    searching the standard include directories).
+<dt> <code>-U</code>name </dt>
+<dd>
+  Undefines a symbol. This is mostly useful to remove a predefined symbol.
+</dd>
 
-`-U`*name*
-:   Undefines a symbol. This is mostly useful to remove a predefined symbol.
+<dt> <code>-a</code> </dt>
+<dd>
+  Append the dependencies to the end of the file instead of replacing them.
+</dd>
 
-`-a`
-:   Append the dependencies to the end of the file instead of replacing them.
+<dt> <code>-f</code>makefile </dt>
+<dd>
+  Sets the output filename, instead of the default name "makefile". When set
+  to "-" (i.e. option <code>-f-</code>), the output is sent to standard output (the
+  console).
+</dd>
 
-`-f`*makefile*
-:   Sets the output filename, instead of the default name "makefile". When set
-    tp "-" (i.e. option `-f-`), the output is sent to standard output (the
-    console).
+<dt> <code>-h</code> </dt>
+<dd>
+  Shows brief usage information for makedepend. When verbose output is
+  enabled (see <code>-v</code>), the list of predefined variables is listed too.
+</dd>
 
-`-h`
-:   Shows brief usage information for makedepend. When verbose output is
-    enabled (see `-v`), the list of predefined variables is listed too.
+<dt> <code>-m</code> </dt>
+<dd>
+  Enables warnings for multiple inclusion (of the same file). This option is
+  provided to aid in debugging problems related to multiple inclusion.
+</dd>
 
-`-m`
-:   Enables warnings for multiple inclusion (of the same file). This option is
-    provided to aid in debugging problems related to multiple inclusion.
+<dt> <code>-o</code>suffix </dt>
+<dd>
+  Object file suffix. The default suffix is ".o", as is common for Unix-like
+  operating systems and the GNU GCC compiler suite. Om Microsoft Windows, the
+  suffix ".obj" is more common, which can be set with the option <code>-o.obj</code>.
+</dd>
 
-`-o`*suffix*
-:   Object file suffix. The default suffix is `.o`, as is common for Unix-like
-    operating systems and the GNU GCC compiler suite. Om Microsoft Windows, the
-    suffix `.obj` is more common, which can be set with the option `-o.obj`.
+<dt> <code>-p</code>prefix </dt>
+<dd>
+  Sets the text that is prepended to the name of each object file. This is
+  usually used to designate a different directory for the object file.
+  <br><br>
+  If the prefix pattern starts with a minus ("-"), that prefix is <em>removed</em>
+  from the object filename if it matches.
+  <br><br>
+  The default prefix string is the empty string.
+</dd>
 
-`-p`*prefix*
-:   Sets the text that is prepended to the name of each object file. This is
-    usually used to designate a different directory for the object file.
+<dt> <code>-s</code>string </dt>
+<dd>
+  Sets the delimiter string below which makedepend writes the generated
+  depedencies. The default string is "#&nbsp;GENERATED&nbsp;DEPENDENCIES.&nbsp;DO&nbsp;NOT&nbsp;DELETE.".
+</dd>
 
-    If the prefix pattern starts with a minus ("-"), that prefix is *removed*
-    from the object filename if it matches.
+<dt> <code>-v</code> </dt>
+<dd>
+  Verbose operation: this option causes makedepend to show more notices and
+  warnings during processing the files. It will also emit the list of files
+  included by each input file.
+</dd>
 
-    The default prefix string is the empty string.
+<dt> <code>-w</code>width </dt>
+<dd>
+  Sets the maximum line width for the lines written to the output file. The
+  default value is 78 characters.
+</dd>
+        
+<dt> <code>-include</code> file </dt>
+<dd>
+  Processes the file includes it before processing each regular input file.
+  This has the same affect as if the specified file were listed in an
+  <code>#include</code> directive at the very to of each regular input file.
+</dd>
 
-`-s`*string*
-:   Sets the delimiter string below which makedepend writes the generated
-    depedencies. The default string is "# GENERATED DEPENDENCIES. DO NOT DELETE.".
-
-`-v`
-:   Verbose operation: this option causes makedepend to show more notices and
-    warnings during processing the files. It will also emit the list of files
-    included by each input file.
-
-`-w`*width*
-:   Sets the maximum line width for the lines written to the output file. The
-    default value is 78 characters.
-
-`-include` *file*
-:   Processes the file includes it before processing each regular input file.
-    This has the same affect as if the specified file were listed in an
-    #include directive at the very to of each regular input file.
-
-`--` *options* `--`
-:   Following a double hyphen (`--`), only the `-D`, `-I` and `-U` options are
-    handled, and any others are silently ignored (source filenames are still
-    handled). The intended purpose of this syntax is that the same `CFLAGS`
-    macro that is passed to the C/C++ compiler can also be passed to makedepend.
-
-    A second double hyphen ends this special processing; it is needed if options
-    that are specific to makedepend follow the definitions in `CFLAGS` (or
-    another makefile macro).
-
+<dt> <code>--</code> options <code>--</code> </dt>
+<dd>
+  Following a double hyphen (<code>--</code>), only the <code>-D</code>, <code>-I</code> and <code>-U</code> options are
+  handled, and any others are silently ignored (source filenames are still
+  handled). The intended purpose of this syntax is that the same <code>CFLAGS</code>
+  macro that is passed to the C/C++ compiler can also be passed to makedepend.
+  <br><br>
+  A second double hyphen ends this special processing; it is needed if options
+  that are specific to makedepend follow the definitions in <code>CFLAGS</code> (or
+  another makefile macro).
+</dd>          
+</dl>
 
 ## Tips
------
+
 While makedepend processes the source files, the predefined macro `_makedepend`
 is set. Testing for this macro in the source file allows you to to conditionally
 exclude a part of the source code from makedepend's processing.
@@ -200,7 +229,7 @@ depend : $(USBHID_O:.o=.c) $(CMSIS_O:.o=.c) $(COREUSB_O:.o=.c)
 
 
 ## License
------
+
 Copyright (c) 1993, 1994, 1998 The Open Group
 
 Permission to use, copy, modify, distribute, and sell this software and its
@@ -224,7 +253,7 @@ in this Software without prior written authorization from The Open Group.
 
 
 ## Change List
------
+
 This version is derived from a port of makedepend by Derell Licht (circa 2005)
 of the original source code to a contemporary version of GNU GCC. It has since
 been modified to bring new features and improvements:
