@@ -50,6 +50,7 @@ in this Software without prior written authorization from The Open Group.
 
 #if defined _MSC_VER
 #include <io.h>
+#define strcasecmp(s1, s2)  _stricmp((s1), (s2))
 #endif
 
 #include <stdarg.h>
@@ -138,6 +139,7 @@ boolean show_where_not = FALSE;
 /* Warn on multiple includes of same file */
 boolean warn_multiple = FALSE;
 
+static void setfile_vars (const char *name, struct inclist *file);
 static void setfile_cmdinc (struct filepointer *filep, long count, char **list);
 static void redirect(const char *line, const char *makefile);
 
@@ -555,6 +557,7 @@ int main (int argc, char *argv[])
         filecontent = getfile (*fp);
         setfile_cmdinc (filecontent, cmdinc_count, cmdinc_list);
         ip = newinclude (*fp, (char *) NULL);
+        setfile_vars (*fp, ip);
 
         find_includes (filecontent, ip, ip, 0, TRUE);
         freefile (filecontent);
@@ -615,6 +618,27 @@ struct filepointer *getfile (const char *file)
     content->cmdinc_list = NULL;
     content->cmdinc_line = 0;
     return (content);
+}
+
+void setfile_vars (const char *name, struct inclist *file)
+{
+    const char *ext, *pathsep;
+
+    pathsep = strrchr(name, '/');
+    if (pathsep)
+        name = pathsep + 1;   /* skip / */
+#ifdef WIN32
+    pathsep = strrchr(name, '\\');
+    if (pathsep)
+        name = pathsep + 1;   /* skip \\ */
+#endif
+
+    ext = strrchr(name, '.');
+    if (ext) {
+        if (strcasecmp(ext, ".cpp") == 0 || strcasecmp(ext, ".cxx") == 0
+            || strcasecmp(ext, ".cc") == 0 || strcasecmp(ext, ".c++") == 0)
+            define2 ("__cplusplus", NULL, "199711L", file);
+    }
 }
 
 void setfile_cmdinc (struct filepointer *filep, long count, char **list)

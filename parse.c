@@ -435,79 +435,79 @@ static char args[S_ARGS_BUFLEN];
     /* Separate symbol name and its value */
     val = def;
     while (isalnum(*val) || *val == '_')
-    val++;
+        val++;
 
     if (*val == '(') /* is this macro definition with parameters? */
     {
-    *val++ = '\0';
+        *val++ = '\0';
 
-    do /* parse the parameter list */
-    {
-        while (*val == ' ' || *val == '\t')
-        val++;
-
-        /* extract next parameter name */
-        if (*val == '.')
-        { /* it should be the var-args parameter: "..." */
-        var_args++;
-        p_tmp = p_args;
-        while (*val == '.')
+        do /* parse the parameter list */
         {
-            *p_args++ = *val++;
+            while (*val == ' ' || *val == '\t')
+            val++;
+
+            /* extract next parameter name */
+            if (*val == '.')
+            { /* it should be the var-args parameter: "..." */
+            var_args++;
+            p_tmp = p_args;
+            while (*val == '.')
+            {
+                *p_args++ = *val++;
+                if (p_args >= &args[S_ARGS_BUFLEN-1])
+                fatalerr("args buffer full failure in insert_defn()\n");
+            }
+            *p_args = '\0';
+            if (strcmp(p_tmp,"...")!=0)
+            {
+                fprintf(stderr, "unrecognized qualifier, should be \"...\" for-args\n");
+            }
+            }
+            else
+            { /* regular parameter name */
+            fix_args++;
+            while (isalnum(*val) || *val == '_')
+            {
+                *p_args++ = *val++;
+                if (p_args >= &args[S_ARGS_BUFLEN-1])
+                fatalerr("args buffer full failure in insert_defn()\n");
+            }
+            }
+            while (*val == ' ' || *val == '\t')
+            val++;
+
+            if (*val == ',')
+            {
+            if (var_args)
+            {
+                fprintf(stderr, "there are more arguments after the first var-args qualifier\n");
+            }
+
+            *p_args++ = ','; /* we are using the , as a reserved char */
             if (p_args >= &args[S_ARGS_BUFLEN-1])
-            fatalerr("args buffer full failure in insert_defn()\n");
-        }
-        *p_args = '\0';
-        if (strcmp(p_tmp,"...")!=0)
-        {
-            fprintf(stderr, "unrecognized qualifier, should be \"...\" for-args\n");
-        }
-        }
-        else
-        { /* regular parameter name */
-        fix_args++;
-        while (isalnum(*val) || *val == '_')
-        {
-            *p_args++ = *val++;
-            if (p_args >= &args[S_ARGS_BUFLEN-1])
-            fatalerr("args buffer full failure in insert_defn()\n");
-        }
-        }
-        while (*val == ' ' || *val == '\t')
-        val++;
-
-        if (*val == ',')
-        {
-        if (var_args)
-        {
-            fprintf(stderr, "there are more arguments after the first var-args qualifier\n");
-        }
-
-        *p_args++ = ','; /* we are using the , as a reserved char */
-        if (p_args >= &args[S_ARGS_BUFLEN-1])
-            fatalerr("args buffer full failure in insert_defn()\n");
-        val++;
-        }
-        else
-        if (*val == ')')
-        {
-        *p_args = '\0';
-        val++;
-        loop=0;
-        }
-        else
-        if (*val != '.')
-        {
-        fprintf(stderr, "trailing ) on macro arguments missing\n");
-        loop=0;
-        }
-    } while (loop);
+                fatalerr("args buffer full failure in insert_defn()\n");
+            val++;
+            }
+            else
+            if (*val == ')')
+            {
+            *p_args = '\0';
+            val++;
+            loop=0;
+            }
+            else
+            if (*val != '.')
+            {
+            fprintf(stderr, "trailing ) on macro arguments missing\n");
+            loop=0;
+            }
+        } while (loop);
     }
 
     if (*val)
-    *val++ = '\0';
+        *val++ = '\0';
     while (*val == ' ' || *val == '\t')
-    val++;
+        val++;
 
     if (!*val) /* define statements without a value will get a value of 1 */
         val = "1";
@@ -770,7 +770,7 @@ find_includes(struct filepointer *filep, struct inclist *file,
             if (!*line) {
                 warning("%s", file_red->i_file);
                 if (file_red != file)
-                warning1(" (reading %s)", file->i_file);
+                    warning1(" (reading %s)", file->i_file);
                 warning1(", line %ld: incomplete undef == \"%s\"\n",
                 filep->f_line, line);
                 break;
