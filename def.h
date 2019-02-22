@@ -114,6 +114,8 @@ struct symtab {
 #define FINISHED    (1<<4)  /* whether we are done reading this */
 #define INCLUDED_SYM    (1<<5)  /* whether #include SYMBOL was found
                                  * Can't use i_list if TRUE */
+#define FORCED_DEP  (1<<6)  /* file is forced as a dependency */
+
 struct  inclist {
   char   *i_incstring;      /* string from #include line */
   char   *i_file;           /* path name of the include file */

@@ -39,14 +39,18 @@ pr(struct inclist *ip, const char *file, const char *base)
 {
 	static const char *lastfile;
 	static int	current_len;
-	register int	len, i, prefixlen;
+	register int	len, i;
 	char	buf[ BUFSIZ ];
 
 	printed = TRUE;
+    assert(ip != NULL);
 	len = strlen(ip->i_file)+1;
+    assert(file != NULL);
 	if (file != lastfile) {
+		int prefixlen;
 		lastfile = file;
 		prefixlen = strlen(objprefix);
+        assert(base != NULL);
 		if (*objprefix == '-' && strncmp(base, objprefix + 1, prefixlen - 1) == 0) {
 		  /* delete prefix (on match) */
 		  snprintf(buf, sizeof(buf), "\n%s%s : %s", base + prefixlen - 1, objsuffix, ip->i_file);
@@ -85,7 +89,7 @@ recursive_pr_include(struct inclist *head, const char *file, const char *base)
 	if (head->i_flags & MARKED)
 		return;
 	head->i_flags |= MARKED;
-	if (head->i_file != file)
+	if (head->i_file != file || (head->i_flags & FORCED_DEP) != 0)
 		pr(head, file, base);
 	for (i=0; i<head->i_listlen; i++)
 		recursive_pr_include(head->i_list[ i ], file, base);

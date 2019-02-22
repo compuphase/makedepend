@@ -132,6 +132,7 @@ static char *startat = "# GENERATED DEPENDENCIES. DO NOT DELETE.";
 int width = 78;
 static boolean append = FALSE;
 static boolean make_backup = TRUE;
+static boolean include_cfile = FALSE;
 boolean printed = FALSE;
 boolean verbose = FALSE;
 boolean show_where_not = FALSE;
@@ -313,6 +314,13 @@ int main (int argc, char *argv[])
                 if (argv[0][2])
                     goto badopt;
                 make_backup = FALSE;
+                break;
+            case 'c':
+                if (endmarker)
+                    break;
+                if (argv[0][2])
+                    goto badopt;
+                include_cfile =TRUE;
                 break;
             case 'w':
                 if (endmarker)
@@ -561,6 +569,8 @@ int main (int argc, char *argv[])
 
         find_includes (filecontent, ip, ip, 0, TRUE);
         freefile (filecontent);
+        if (include_cfile)
+            ip->i_flags |= FORCED_DEP;
         recursive_pr_include (ip, ip->i_file, base_name (*fp));
         inc_clean ();
     }
@@ -960,6 +970,7 @@ void showusage (void)
     printf("-a\t\tAppend dependencies to the end of the file instead of replacing\n"
            "\t\tthem.\n");
     printf("-b\t\tDo not create a backup file of the input makefile.\n");
+    printf("-c\t\tInclude the C/C++ file in de dependencies for the object file.\n");
     printf("-f<makefile>\tSet the file into which the output is written (default is\n"
            "\t\t\"Makefile\"). Setting -f- sends the output to standard output.\n");
     printf("-h\t\tShow usage information (this text).\n");

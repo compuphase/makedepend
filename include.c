@@ -198,8 +198,6 @@ newinclude(char *newfile, const char *incstring)
 void
 included_by(struct inclist *ip, struct inclist *newfile)
 {
-    register int i;
-
     if (ip == NULL)
         return;
     /*
@@ -214,6 +212,7 @@ included_by(struct inclist *ip, struct inclist *newfile)
         ip->i_merged = (boolean *)
             malloc(sizeof(boolean) * ip->i_listlen);
     } else {
+        register int i;
         for (i=0; i<ip->i_listlen; i++)
             if (ip->i_list[ i ] == newfile) {
                 i = strlen(newfile->i_file);
@@ -252,7 +251,7 @@ struct inclist *
 inc_path(const char *file, char *include, int type)
 {
     static char     path[ BUFSIZ ];
-    register const char **pp, *p;
+    register const char **pp;
     register struct inclist *ip;
     struct stat     st;
 
@@ -290,6 +289,7 @@ inc_path(const char *file, char *include, int type)
          * in the directory of the file being parsed.
          */
         if ((type == INCLUDEDOT) || (type == INCLUDENEXTDOT)) {
+			register const char *p;
             for (p=file+strlen(file); p>file; p--)
                 if (*p == '/')
                     break;
