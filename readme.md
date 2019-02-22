@@ -172,6 +172,22 @@ in `$^`.
   Append the dependencies to the end of the file instead of replacing them.
 </dd>
 
+<dt> <code>-b</code> </dt>
+<dd>
+  Do not create backups. By default, <code>makedepend</code> makes a backup of the
+  makefile (or dependencies file) before modifying it. The <code>-b</code> option
+  disables this.
+</dd>
+
+<dt> <code>-c</code> </dt>
+<dd>
+  Add the C/C++ source file as a dependency for the object file. By default, only
+  header files are listed as dependencies. The dependency on the C or C++ source
+  file is then either added explicitly to the makefile, or implied by the
+  <code>make</code> program. By setting the <code>-c</code> option on
+  <code>makedepend</code>, the source file is included in the generated dependencies.
+</dd>
+
 <dt> <code>-f</code>makefile </dt>
 <dd>
   Sets the output filename, instead of the default name "makefile". When set
@@ -286,6 +302,8 @@ been modified to bring new features and improvements:
   with the `-h -v` arguments (verbose help).
 * Added the `-b` command line option, to skip making backups of the input
   makefiles.
+* Added the `-c` command line option, to include the source file in the list of
+  dependencies for the object file.
 * Let makedepend create the "makefile" with dependencies if it does not yet
   exist.
 * Read the `INCLUDE` environment variable on Microsoft Windows (instead of the
