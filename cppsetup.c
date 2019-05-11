@@ -233,6 +233,9 @@ build_keyword_list (const char* keys, const char* values)
         while (*ptmp && (*ptmp != ','))
             ptmp++, len++;
         pnew->name = malloc(len+1);
+        if (!pnew->name)
+            memoryerr();
+        assert(pnew->name);
         strncpy(pnew->name, keys, len);
         pnew->name[len] = '\0';
         keys = ptmp;
@@ -245,6 +248,9 @@ build_keyword_list (const char* keys, const char* values)
         while (*ptmp && (*ptmp != ',') && (*ptmp != ')'))
             ptmp++, len++;
         pnew->value = malloc(len+1);
+        if (!pnew->value)
+            memoryerr();
+        assert(pnew->value);
         strncpy(pnew->value, values, len);
         pnew->value[len] = '\0';
         values = ptmp;

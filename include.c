@@ -233,7 +233,12 @@ included_by(struct inclist *ip, struct inclist *newfile)
         ip->i_merged = (boolean *)
             realloc(ip->i_merged, sizeof(boolean) * ip->i_listlen);
     }
+    if (!ip->i_list || !ip->i_merged)
+        memoryerr();
+
+    assert(ip->i_list);
     ip->i_list[ ip->i_listlen-1 ] = newfile;
+    assert(ip->i_merged);
     ip->i_merged[ ip->i_listlen-1 ] = FALSE;
 }
 

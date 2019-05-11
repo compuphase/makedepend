@@ -157,8 +157,8 @@ in `$^`.
   of the directory list. In Linux, Unix and OS/2, makedepend evaluates the
   C_INCLUDE_PATH environment variable for the standard includes; in
   Microsoft Windows, makedepend evaluates the INCLUDE environment
-  variable. When the option <code>-I-</code> is set, makedepend does <em>not</em> append
-  the standard include directories (and thus prevents makedepend from
+  variable. When the option <code>-I-</code> is set, makedepend does <em>not</em>
+  append the standard include directories (and thus prevents makedepend from
   searching the standard include directories).
 </dd>
 
@@ -169,30 +169,36 @@ in `$^`.
 
 <dt> <code>-a</code> </dt>
 <dd>
-  Append the dependencies to the end of the file instead of replacing them.
+  Accumulates the dependencies in the output file instead of removing the
+  dependencies for files that are <em>not</em> listed on the command line of
+  makedepend. With this option, you can call makedepend multiple times with
+  different filename lists, and obtaining the accumulated dependencies of all
+  those calls.
+  <br><br>
+  Note that dependencies for files that are listed on the command line are
+  replaced in the output file. The <code>-a</code> option is not a simple
+  "append".
 </dd>
 
 <dt> <code>-b</code> </dt>
 <dd>
-  Do not create backups. By default, <code>makedepend</code> makes a backup of the
-  makefile (or dependencies file) before modifying it. The <code>-b</code> option
-  disables this.
+  No backups. By default, makedepend copies the makefile to one with a .bak
+  extension before modifying it. When this option is set, makedepend deletes
+  the backup file.
 </dd>
 
 <dt> <code>-c</code> </dt>
 <dd>
-  Add the C/C++ source file as a dependency for the object file. By default, only
-  header files are listed as dependencies. The dependency on the C or C++ source
-  file is then either added explicitly to the makefile, or implied by the
-  <code>make</code> program. By setting the <code>-c</code> option on
-  <code>makedepend</code>, the source file is included in the generated dependencies.
+  Includes the C/C++ source file in the list of dependencies. By default,
+  makedepend only lists all files <em>included</em> by the source file on the
+  dependency line.
 </dd>
 
 <dt> <code>-f</code>makefile </dt>
 <dd>
   Sets the output filename, instead of the default name "makefile". When set
-  to "-" (i.e. option <code>-f-</code>), the output is sent to standard output (the
-  console).
+  to "-" (i.e. option <code>-f-</code>), the output is sent to standard output
+  (the console).
 </dd>
 
 <dt> <code>-h</code> </dt>
@@ -297,17 +303,24 @@ been modified to bring new features and improvements:
 
 * Some minor adjustments for better compatibility with Microsoft Windows, such
   as handling the backslash as an equivalent as the forward slash in paths.
+* Filenames with space characters are written with the space characters
+  "escaped" with a backslash (in a way compatible with GNU Make).
+* The `-a` command line option now does an intelligent "append", where
+  dependencies for new files are added, but dependencies for existing files
+  are replaced.
+* Added the `-b` command line option, to skip making backups of the input
+  makefiles.
+* Added the `-c` command line option, to add the source file as a dependency
+  for each target (in addition to the files included by that source file).
 * Added the `-h` command line option, to show program usage.
 * Let makedepend display the (platform-specific) list of predefined variables
   with the `-h -v` arguments (verbose help).
-* Added the `-b` command line option, to skip making backups of the input
-  makefiles.
+* Replace the option `-Y` by `-I-`.
 * Added the `-c` command line option, to include the source file in the list of
   dependencies for the object file.
 * Let makedepend create the "makefile" with dependencies if it does not yet
   exist.
 * Read the `INCLUDE` environment variable on Microsoft Windows (instead of the
   `C_INCLUDE_PATH` variable).
-* Replace the option `-Y` by `-I-`.
 * Added the prededined `_makedepend` and `__cplusplus` variables.
 

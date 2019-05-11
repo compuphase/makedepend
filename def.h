@@ -147,7 +147,6 @@ struct filepointer {
 
 char*  copy(const char *str);
 int    match(const char *str, const char **list);
-char*  base_name(char *file);
 char*  getnextline(struct filepointer *fp);
 struct symtab** slookup(const char *symbol, struct inclist *file);
 struct symtab** isdefined(const char *symbol, struct inclist *file,
@@ -171,6 +170,7 @@ int    find_includes(struct filepointer *filep,
                      struct inclist *file_red,
                      int recursion, boolean failOK);
 
+char*  targetname(const char *base);
 void   recursive_pr_include(struct inclist *head, const char *file, const char *base);
 
 int    cppsetup(const char *filename,
@@ -178,6 +178,7 @@ int    cppsetup(const char *filename,
                 struct filepointer *filep,
                 struct inclist *inc);
 
+void   memoryerr(void);
 void   fatalerr(const char*, ...);
 void   warning(const char*, ...);
 void   warning1(const char*, ...);

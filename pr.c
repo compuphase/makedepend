@@ -28,69 +28,125 @@ in this Software without prior written authorization from The Open Group.
 
 #include "def.h"
 
-extern char	*objprefix;
-extern char	*objsuffix;
-extern int	width;
-extern boolean	printed;
-extern boolean	verbose;
+extern char *objprefix;
+extern char *objsuffix;
+extern int  width;
+extern boolean  printed;
+extern boolean  verbose;
+
+static void
+strxcat(char *target, const char *source, size_t tgtlength, int expand)
+{
+    size_t len;
+
+    assert(target != NULL);
+    assert(source != NULL);
+
+    len = strlen(target);
+    if (tgtlength <= len)
+        return; /* no space at all (not even for the zero terminator) */
+
+    tgtlength -= len;
+    target += len;
+    while (*source != '\0') {
+        if (expand && *source == ' ') {
+            if (tgtlength > 2) {
+                *target++ = '\\';
+                *target++ = ' ';
+                tgtlength -= 2;
+            }
+        } else {
+            if (tgtlength > 1) {
+                *target++ = *source;
+                tgtlength--;
+            }
+        }
+        source++;
+    }
+    *target = '\0';
+}
+
+char *
+targetname(const char *base)
+{
+    int prefixlen;
+    char *target = malloc(BUFSIZ);
+    if (!target)
+        memoryerr();
+
+    assert(target);
+    *target = '\0';
+    assert(base != NULL);
+    prefixlen = strlen(objprefix);
+    if (*objprefix == '-' && strncmp(base, objprefix + 1, prefixlen - 1) == 0) {
+        /* delete prefix (on match) */
+        strxcat(target, base + prefixlen - 1, BUFSIZ, 0);
+    } else {
+        /* add prefix */
+        strxcat(target, objprefix, BUFSIZ, 0);
+        strxcat(target, base, BUFSIZ, 0);
+    }
+    strxcat(target, objsuffix, BUFSIZ, 0);
+
+    target = realloc(target, strlen(target) + 1);
+    assert(target != NULL); /* since the size shrinks, realloc always succeeds */
+    return target;
+}
 
 static void
 pr(struct inclist *ip, const char *file, const char *base)
 {
-	static const char *lastfile;
-	static int	current_len;
-	register int	len, i;
-	char	buf[ BUFSIZ ];
+    static const char *lastfile;
+    static int  current_len;
+    int    len, i;
+    char   buf[ BUFSIZ ];
 
-	printed = TRUE;
+    printed = TRUE;
     assert(ip != NULL);
-	len = strlen(ip->i_file)+1;
+    len = strlen(ip->i_file)+1;
     assert(file != NULL);
-	if (file != lastfile) {
-		int prefixlen;
-		lastfile = file;
-		prefixlen = strlen(objprefix);
-        assert(base != NULL);
-		if (*objprefix == '-' && strncmp(base, objprefix + 1, prefixlen - 1) == 0) {
-		  /* delete prefix (on match) */
-		  snprintf(buf, sizeof(buf), "\n%s%s : %s", base + prefixlen - 1, objsuffix, ip->i_file);
-		} else {
-		  /* normal prefix */
-		  snprintf(buf, sizeof(buf), "\n%s%s%s : %s", objprefix, base, objsuffix, ip->i_file);
-		}
-		len = current_len = strlen(buf);
+    if (file != lastfile) {
+        const char *target = targetname(base);
+        strcpy(buf, "\n");
+        strxcat(buf, target, sizeof(buf), 1);
+        strxcat(buf, " : ", sizeof(buf), 0);
+        strxcat(buf, ip->i_file, sizeof(buf), 1);
+        lastfile = file;
+        free((void*)target);
+        len = current_len = strlen(buf);
     } else if (current_len + len + 5 > width) {
-		snprintf(buf, sizeof(buf), " \\\n\t%s", ip->i_file);
-		len = current_len = strlen(buf);
-	} else {
-		buf[0] = ' ';
-		strcpy(buf+1, ip->i_file);
-		current_len += len;
-	}
-	fwrite(buf, len, 1, stdout);
+        strcpy(buf, " \\\n\t");
+        strxcat(buf, ip->i_file, sizeof(buf), 1);
+        len = current_len = strlen(buf);
+    } else {
+        strcpy(buf, " ");
+        strxcat(buf, ip->i_file, sizeof(buf), 1);
+        current_len += len;
+    }
+    fwrite(buf, len, 1, stdout);
 
-	/*
-	 * If verbose is set, then print out what this file includes.
-	 */
-	if (! verbose || ip->i_list == NULL || ip->i_flags & NOTIFIED)
-		return;
-	ip->i_flags |= NOTIFIED;
-	lastfile = NULL;
-	printf("\n# %s includes:", ip->i_file);
-	for (i=0; i<ip->i_listlen; i++)
-		printf("\n#\t%s", ip->i_list[ i ]->i_incstring);
+    /*
+     * If verbose is set, then print out what this file includes.
+     */
+    if (! verbose || ip->i_list == NULL || ip->i_flags & NOTIFIED)
+        return;
+    ip->i_flags |= NOTIFIED;
+    lastfile = NULL;
+    printf("\n# %s includes:", ip->i_file);
+    for (i=0; i<ip->i_listlen; i++)
+        printf("\n#\t%s", ip->i_list[ i ]->i_incstring);
 }
 
 void
 recursive_pr_include(struct inclist *head, const char *file, const char *base)
 {
-	int	i;
+    int i;
 
-	if (head->i_flags & MARKED)
-		return;
-	head->i_flags |= MARKED;
-	if (head->i_file != file || (head->i_flags & FORCED_DEP) != 0)
-		pr(head, file, base);
-	for (i=0; i<head->i_listlen; i++)
-		recursive_pr_include(head->i_list[ i ], file, base);
+    if (head->i_flags & MARKED)
+        return;
+    head->i_flags |= MARKED;
+    if (head->i_file != file || (head->i_flags & FORCED_DEP) != 0)
+        pr(head, file, base);
+    for (i=0; i<head->i_listlen; i++)
+        recursive_pr_include(head->i_list[ i ], file, base);
 }

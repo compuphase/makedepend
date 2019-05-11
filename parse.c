@@ -343,6 +343,7 @@ define2(const char *name, const char *args, const char *val, struct inclist *fil
 
     if (file->i_defs == NULL)
         fatalerr("malloc()/realloc() failure in insert_defn()\n");
+    assert(file->i_defs);
 
     below = first = 0;
     last = file->i_ndefs - 1;
@@ -410,6 +411,7 @@ define2(const char *name, const char *args, const char *val, struct inclist *fil
         fatalerr("malloc()/realloc() failure in insert_defn()\n");
 
     debug(1,("defining %s to %s in file %s\n", name, val, file->i_file));
+    assert(stab);
     stab->s_name = copy(name);
     if (args)
         stab->s_args = copy(args);
@@ -603,6 +605,7 @@ merge2defines(struct inclist *file1, struct inclist *file2)
             char *s1=file1->i_defs[first1]->s_name;
             char *s2=file2->i_defs[first2]->s_name;
 
+            assert(i_defs);
             if (strcmp(s1,s2) < 0)
                 i_defs[first++]=file1->i_defs[first1++];
             else if (strcmp(s1,s2) > 0)
@@ -615,10 +618,12 @@ merge2defines(struct inclist *file1, struct inclist *file2)
         }
         while (last1 >= first1)
         {
+            assert(i_defs);
             i_defs[first++]=file1->i_defs[first1++];
         }
         while (last2 >= first2)
         {
+            assert(i_defs);
             i_defs[first++]=file2->i_defs[first2++];
         }
 

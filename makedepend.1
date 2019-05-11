@@ -1,25 +1,25 @@
 .\" $Xorg: mkdepend.man,v 1.5 2001/02/09 02:03:16 xorgcvs Exp $
 .\" Copyright (c) 1993, 1994, 1998 The Open Group
-.\" 
+.\"
 .\" Permission to use, copy, modify, distribute, and sell this software and its
 .\" documentation for any purpose is hereby granted without fee, provided that
 .\" the above copyright notice appear in all copies and that both that
 .\" copyright notice and this permission notice appear in supporting
 .\" documentation.
-.\" 
+.\"
 .\" The above copyright notice and this permission notice shall be included in
 .\" all copies or substantial portions of the Software.
-.\" 
+.\"
 .\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 .\" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL 
-.\" THE OPEN GROUP BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
-.\" WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF 
-.\" OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+.\" THE OPEN GROUP BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+.\" WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
+.\" OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 .\" SOFTWARE.
-.\" 
-.\" Except as contained in this notice, the name of The Open Group shall not 
-.\" be used in advertising or otherwise to promote the sale, use or other 
+.\"
+.\" Except as contained in this notice, the name of The Open Group shall not
+.\" be used in advertising or otherwise to promote the sale, use or other
 .\" dealing in this Software without prior written authorization from The
 .\" Open Group.
 .\"
@@ -38,13 +38,19 @@ makedepend \- create dependencies in makefiles
 ] [
 .BI \-I includedir
 ] [
-.BI \-Y includedir
-] [
 .B \-a
+] [
+.B \-b
+] [
+.B \-c
 ] [
 .BI \-f makefile
 ] [
+.B \-h
+] [
 .BI \-include \ file
+] [
+.B \-m
 ] [
 .BI \-o objsuffix
 ] [
@@ -52,11 +58,9 @@ makedepend \- create dependencies in makefiles
 ] [
 .BI \-s string
 ] [
-.BI \-w width
-] [
 .B \-v
 ] [
-.B \-m
+.BI \-w width
 ] [
 \-\^\-
 .I otheroptions
@@ -116,15 +120,16 @@ option.
 It first searches the makefile for
 the line
 .sp
-\&    # DO NOT DELETE THIS LINE \-\^\- make depend depends on it.
+\&    # GENERATED DEPENDENCIES. DO NOT DELETE.
 .sp
 or one provided with the
 .B \-s
 option,
 as a delimiter for the dependency output.
-If it finds it, it will delete everything
+If it finds it, it will delete all rules
 following this to the end of the makefile
-and put the output after this line.
+and put the output after this line (the -a
+option changes this behavior).
 If it doesn't find it, the program
 will append the string to the end of the makefile
 and place the output following that.
@@ -168,7 +173,7 @@ This places a definition for
 in
 .B makedepend's
 symbol table.
-Without 
+Without
 .I =def\|
 the symbol becomes defined as ``1''.
 .TP 5
@@ -184,17 +189,60 @@ a
 directive.
 By default,
 .B makedepend
-only searches the standard include directories (usually /usr/include
-and possibly a compiler-dependent directory).
+appends the standard include directories at the end
+of the directory list. In Linux, Unix and OS/2,
+.B makedepend
+evaluates the
+.I C_INCLUDE_PATH
+environment variable for the standard includes; in
+Microsoft Windows,
+.B makedepend
+evaluates the
+.I INCLUDE
+environment variable. When the option
+.B \-I\-
+is set,
+.B makedepend
+does
+.I not
+append the standard include directories (and thus prevents
+.B makedepend
+from searching the standard include directories).
 .TP 5
-.B \-Y\fIincludedir\fP
-Replace all of the standard include directories with the single specified
-include directory; you can omit the
-.I includedir
-to simply prevent searching the standard include directories.
+.B \-U\fIname\fP
+Undefines a symbol. This is mostly useful to remove a
+predefined symbol.
 .TP 5
 .B \-a
-Append the dependencies to the end of the file instead of replacing them. 
+Accumulates the dependencies in the output file instead of removing the
+dependencies for files that are
+.I not
+listed on the command line of
+.B makedepend.
+With this option, you can call
+.B makedepend
+multiple times with different filename lists, and obtaining
+the accumulated dependencies of all those calls.
+
+Note that dependencies for files that are listed on the command line are
+replaced in the output file. The
+.B \-a
+option is not a simple "append".
+.TP 5
+.B \-b
+No backups. By default,
+.B makedepend
+copies the makefile to one with a .bak
+extension before modifying it. When this option is set,
+.B makedepend
+deletes the backup file.
+.TP 5
+.B \-c
+Includes the C/C++ source file in the list of dependencies. By default,
+.B makedepend
+only lists all files
+.I included
+by the source file on the dependency line.
 .TP 5
 .B \-f\fImakefile\fP
 Filename.
@@ -204,11 +252,31 @@ can place its output.
 Specifying ``\-'' as the file name (i.e., \fB\-f\-\fP) sends the
 output to standard output instead of modifying an existing file.
 .TP 5
+.B \-h
+Shows brief usage information for
+.B makedepend.
+When verbose output is enabled (see
+.B \-v
+), the list of predefined variables is listed too.
+.TP 5
 .B \-include \fIfile\fP
 Process file as input, and include all the resulting output
 before processing the regular input file. This has the same
 affect as if the specified file is an include statement that
 appears before the very first line of the regular input file.
+.TP 5
+.B \-m
+Warn about multiple inclusion.
+This option causes
+.B makedepend
+to produce a warning if any input file includes another file more than
+once.  In previous versions of
+.B makedepend
+this was the default behavior; the default has been changed to better
+match the behavior of the C compiler, which does not consider multiple
+inclusion to be an error.  This option is provided for backward
+compatibility, and to aid in debugging problems related to multiple
+inclusion.
 .TP 5
 .B \-o\fIobjsuffix\fP
 Object file suffix.
@@ -226,6 +294,11 @@ and so forth.
 Object file prefix.
 The prefix is prepended to the name of the object file. This is
 usually used to designate a different directory for the object file.
+
+If the prefix pattern starts with a minus ("\-"), that prefix is
+.I removed
+from the object filename if it matches.
+
 The default is the empty string.
 .TP 5
 .B \-s\fIstring\fP
@@ -235,6 +308,12 @@ a different string for
 .B makedepend
 to look for in the makefile.
 .TP 5
+.B \-v
+Verbose operation.
+This option causes
+.B makedepend
+to emit the list of files included by each input file.
+.TP 5
 .B \-w\fIwidth\fP
 Line width.
 Normally,
@@ -242,25 +321,6 @@ Normally,
 will ensure that every output line that it writes will be no wider than
 78 characters for the sake of readability.
 This option enables you to change this width.
-.TP 5
-.B \-v
-Verbose operation.
-This option causes 
-.B makedepend
-to emit the list of files included by each input file.
-.TP 5
-.B \-m
-Warn about multiple inclusion.
-This option causes 
-.B makedepend
-to produce a warning if any input file includes another file more than
-once.  In previous versions of 
-.B makedepend
-this was the default behavior; the default has been changed to better
-match the behavior of the C compiler, which does not consider multiple
-inclusion to be an error.  This option is provided for backward 
-compatibility, and to aid in debugging problems related to multiple
-inclusion.
 .TP 5
 .B "\-\^\- \fIoptions\fP \-\^\-"
 If

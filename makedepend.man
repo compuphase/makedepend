@@ -4,10 +4,11 @@ NAME
        makedepend - create dependencies in makefiles
 
 SYNOPSIS
-       makedepend  [  -Dname=def  ] [ -Dname ] [ -Iincludedir ] 
-		 [-Yincludedir ] [ -a ] [ -fmakefile ] [ -include file  ]  
-       [-oobjsuffix  ]  [ -pobjprefix ] [ -sstring ] [ -wwidth ] 
-       [-v ] [ -m ] [ -- otheroptions -- ] sourcefile ...
+       makedepend  [  -Dname=def  ] [ -Dname ] [ -Iincludedir ]
+		   [ -a ] [ -b ] [ -c ] [ -fmakefile ] [ -h ]
+                   [ -include file ] [ -m ] [-oobjsuffix ]
+                   [ -pobjprefix ] [ -sstring ] [-v ] [ -wwidth ]
+                   [ -- otheroptions -- ] sourcefile ...
 
 DESCRIPTION
        The makedepend program reads each sourcefile  in  sequence
@@ -19,10 +20,10 @@ DESCRIPTION
        #include directives, and parsing will occur in these files
        as well.
 
-       Every  file  that a sourcefile includes, directly or indi­
+       Every  file  that a sourcefile includes, directly or indi-­
        rectly, is what  makedepend  calls  a  dependency.   These
        dependencies  are then written to a makefile in such a way
-       that make(1) will know which object files must  be  recom­
+       that make(1) will know which object files must  be  recom-
        piled when a dependency has changed.
 
        By default, makedepend places its output in the file named
@@ -30,22 +31,23 @@ DESCRIPTION
        makefile  may  be  specified with the -f option.  It first
        searches the makefile for the line
 
-           # DO NOT DELETE THIS LINE -- make  depend  depends  on it.
+           # GENERATED DEPENDENCIES. DO NOT DELETE.
 
        or one provided with the -s option, as a delimiter for the
-       dependency output.  If it finds it, it will delete  every­
-       thing  following  this  to the end of the makefile and put
-       the output after this line.  If it doesn't  find  it,  the
-       program  will append the string to the end of the makefile
-       and place the output following that.  For each  sourcefile
-       appearing  on  the  command line, makedepend puts lines in
-       the makefile of the form
+       dependency output.  If it finds it,  it  will  delete  all
+       rules  following  this  to the end of the makefile and put
+       the output after this line (the -a option changes this be-
+       havior).  If it doesn't find it, the program  will  append
+       the string to the end of the makefile and place the output
+       following that.  For each sourcefile appearing on the com-
+       mand line, makedepend puts lines in the  makefile  of  the
+       form
 
             sourcefile.o: dfile ...
 
        Where sourcefile.o is the name from the command line  with
        its suffix replaced with ``.o'', and dfile is a dependency
-       discovered in a #include directive while  parsing  source­
+       discovered in a #include directive while  parsing  source-
        file or one of the files it included.
 
 EXAMPLE
@@ -58,7 +60,7 @@ EXAMPLE
                    makedepend -- $(CFLAGS) -- $(SRCS)
 
 OPTIONS
-       The program will ignore any option that it does not under­
+       The program will ignore any option that it does not under-
        stand so that you may use  the  same  arguments  that  you
        would for cc(1).
 
@@ -71,18 +73,39 @@ OPTIONS
             Include  directory.   This option tells makedepend to
             prepend includedir to  its  list  of  directories  to
             search  when  it encounters a #include directive.  By
-            default,  makedepend  only  searches   the   standard
-            include  directories (usually /usr/include and possi­
-            bly a compiler-dependent directory).
+            default,  makedepend  appends  the  standard  include
+            directories at the  end  of  the directory  list.  In
+            Linux,  Unix  and  OS/2,  makedepend   evaluates  the
+            C_INCLUDE_PATH environment variable for  the standard
+            includes; in Microsoft Windows,  makedepend evaluates
+            the INCLUDE environment variable. When the option -I-
+            is set, makedepend does not append  the  standard in-
+            clude directories (and thus prevents  makedepend from
+            searching the standard include directories).
 
-       -Yincludedir
-            Replace all of the standard include directories  with
-            the  single specified include directory; you can omit
-            the includedir to simply prevent searching the  stan­
-            dard include directories.
+       -Uname
+            Undefines a symbol. This is mostly useful to remove a
+            predefined symbol.
 
-       -a   Append  the  dependencies  to  the  end  of  the file
-            instead of replacing them.
+       -a   Accumulates  the  dependencies  in  the  output  file
+            instead of removing the dependencies for  files  that
+            are not listed on the command line of makedepend.
+            With this option, you can  call  makedepend  multiple
+            times with different filename  lists,  and  obtaining
+            the accumulated dependencies of all those calls.
+
+            Note that dependencies for files that are  listed  on
+            the command line are replaced in the output file. The
+            -a option is not a simple "append".
+
+       -b   No  backups.   By  default,  makedepend  copies   the
+            makefile  to  one  with  a  .bak   extension   before
+            modifying it.  When this option  is  set,  makedepend
+            deletes the backup file.
+
+       -c   Includes the C/C++ source file in the list of  depen-
+            dencies.  By default, makedepend only lists all files
+            included by the source file on the dependency line.
 
        -fmakefile
             Filename.  This allows you to  specify  an  alternate
@@ -91,39 +114,16 @@ OPTIONS
             the output to standard output instead of modifying an
             existing file.
 
+       -h   Shows brief usage information  for  makedepend.  When
+            verbose output is enabled (see -v),  the list of pre-
+            defined variables is listed too.
+
        -include file
             Process file as input, and include all the  resulting
             output before processing the regular input file. This
             has the same affect as if the specified  file  is  an
             include  statement that appears before the very first
             line of the regular input file.
-
-       -oobjsuffix
-            Object file suffix.  Some  systems  may  have  object
-            files  whose  suffix  is something other than ``.o''.
-            This option allows you  to  specify  another  suffix,
-            such  as ``.b'' with -o.b or ``:obj'' with -o:obj and
-            so forth.
-
-       -pobjprefix
-            Object file prefix.  The prefix is prepended  to  the
-            name of the object file. This is usually used to des­
-            ignate a different directory  for  the  object  file.
-            The default is the empty string.
-
-       -sstring
-            Starting  string  delimiter.  This option permits you
-            to specify a different string for makedepend to  look
-            for in the makefile.
-
-       -wwidth
-            Line  width.   Normally,  makedepend will ensure that
-            every output line that it writes  will  be  no  wider
-            than 78 characters for the sake of readability.  This
-            option enables you to change this width.
-
-       -v   Verbose operation.  This option causes makedepend  to
-            emit the list of files included by each input file.
 
        -m   Warn  about  multiple  inclusion.  This option causes
             makedepend to produce a warning  if  any  input  file
@@ -134,6 +134,38 @@ OPTIONS
             multiple  inclusion  to  be an error.  This option is
             provided for backward compatibility, and  to  aid  in
             debugging problems related to multiple inclusion.
+
+       -oobjsuffix
+            Object file suffix.  Some  systems  may  have  object
+            files  whose  suffix  is something other than ``.o''.
+            This option allows you  to  specify  another  suffix,
+            such  as ``.b'' with -o.b or ``:obj'' with -o:obj and
+            so forth.
+
+       -pobjprefix
+            Object file prefix.  The prefix is prepended  to  the
+            name of the object file. This is usually used to des-
+            ignate a different directory  for  the  object  file.
+
+            If the prefix pattern starts with a minus ("-"), that
+            prefix is removed from  the  object  filename  if  it
+            matches.
+
+            The default is the empty string.
+
+       -sstring
+            Starting  string  delimiter.  This option permits you
+            to specify a different string for makedepend to  look
+            for in the makefile.
+
+       -v   Verbose operation.  This option causes makedepend  to
+            emit the list of files included by each input file.
+
+       -wwidth
+            Line  width.   Normally,  makedepend will ensure that
+            every output line that it writes  will  be  no  wider
+            than 78 characters for the sake of readability.  This
+            option enables you to change this width.
 
        -- options --
             If  makedepend encounters a double hyphen (--) in the

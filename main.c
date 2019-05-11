@@ -130,7 +130,6 @@ char *objprefix = "";
 char *objsuffix = OBJSUFFIX;
 static char *startat = "# GENERATED DEPENDENCIES. DO NOT DELETE.";
 int width = 78;
-static boolean append = FALSE;
 static boolean make_backup = TRUE;
 static boolean include_cfile = FALSE;
 boolean printed = FALSE;
@@ -140,9 +139,11 @@ boolean show_where_not = FALSE;
 /* Warn on multiple includes of same file */
 boolean warn_multiple = FALSE;
 
+static char*  base_name(const char *file);
+
 static void setfile_vars (const char *name, struct inclist *file);
 static void setfile_cmdinc (struct filepointer *filep, long count, char **list);
-static void redirect(const char *line, const char *makefile);
+static void redirect(const char *line, const char *makefile, const char *filelist[]);
 
 static
 #ifdef SIGNALRETURNSINT
@@ -182,6 +183,7 @@ int main (int argc, char *argv[])
     const char *endmarker = NULL;
     char **undeflist = NULL;
     int numundefs = 0, i;
+    boolean accumulate = FALSE;
     boolean systeminclude = TRUE;
     boolean showhelp = FALSE;
 
@@ -306,7 +308,7 @@ int main (int argc, char *argv[])
                     break;
                 if (argv[0][2])
                     goto badopt;
-                append = TRUE;
+                accumulate = TRUE;
                 break;
             case 'b':
                 if (endmarker)
@@ -320,7 +322,7 @@ int main (int argc, char *argv[])
                     break;
                 if (argv[0][2])
                     goto badopt;
-                include_cfile =TRUE;
+                include_cfile = TRUE;
                 break;
             case 'w':
                 if (endmarker)
@@ -490,7 +492,7 @@ int main (int argc, char *argv[])
         #endif
     }
 
-    redirect (startat, makefile);
+    redirect (startat, makefile, (accumulate ? filelist : NULL));
 
     /*
      * catch signals.
@@ -562,6 +564,7 @@ int main (int argc, char *argv[])
      * now peruse through the list of files.
      */
     for (fp = filelist; *fp; fp++) {
+        const char *basename = base_name (*fp);
         filecontent = getfile (*fp);
         setfile_cmdinc (filecontent, cmdinc_count, cmdinc_list);
         ip = newinclude (*fp, (char *) NULL);
@@ -571,8 +574,9 @@ int main (int argc, char *argv[])
         freefile (filecontent);
         if (include_cfile)
             ip->i_flags |= FORCED_DEP;
-        recursive_pr_include (ip, ip->i_file, base_name (*fp));
+        recursive_pr_include (ip, ip->i_file, basename);
         inc_clean ();
+        free ((void*)basename);
     }
     if (printed)
         printf ("\n");
@@ -602,6 +606,9 @@ struct filepointer *getfile (const char *file)
     struct stat st;
 
     content = (struct filepointer *) malloc (sizeof (struct filepointer));
+    if (!content)
+        memoryerr();
+    assert(content);
     content->f_name = file;
     if ((fd = _open (file, O_RDONLY)) < 0) {
         warning ("cannot open \"%s\"\n", file);
@@ -612,7 +619,8 @@ struct filepointer *getfile (const char *file)
     fstat (fd, &st);
     content->f_base = (char *) malloc (st.st_size + 1);
     if (content->f_base == NULL)
-        fatalerr ("cannot allocate mem\n");
+        memoryerr ();
+    assert(content->f_base);
     if ((st.st_size = _read (fd, content->f_base, st.st_size)) < 0)
         fatalerr ("failed to read %s\n", file);
 #ifdef __UNIXOS2__
@@ -667,8 +675,8 @@ void freefile (struct filepointer *fp)
 char *copy (const char *str)
 {
     char *p = (char *) malloc (strlen (str) + 1);
-
-    strcpy (p, str);
+    if (p)
+        strcpy (p, str);
     return (p);
 }
 
@@ -812,29 +820,31 @@ char *getnextline (struct filepointer *filep)
  * Strip the file name down to what we want to see in the Makefile.
  * (It will get objprefix and objsuffix around it.)
  */
-char *base_name (char *file)
+static char *base_name (const char *file)
 {
     char *p;
-
-    file = copy (file);
-    for (p = file + strlen (file); p > file && *p != '.'; p--)
+    char *newfile = copy (file);    /* creates a copy on the heap */
+    if (!newfile)
+        memoryerr ();
+    assert(newfile);
+    for (p = newfile + strlen (newfile); p > newfile && *p != '.'; p--)
         /*EMPTY*/;
 
     if (*p == '.')
         *p = '\0';
 
-    p = file + strlen (file);
+    p = newfile + strlen (newfile);
 #if defined WIN32
-    while (p > file && *p != '/' && *p != '\\')
+    while (p > newfile && *p != '/' && *p != '\\')
         p--;
 #else
-    while (p > file && *p != '/')
+    while (p > newfile && *p != '/')
         p--;
 #endif
-    if (p != file)
-        file = p + 1;   /* return name after last path */
+    if (p != newfile)
+        newfile = p + 1;   /* return name after last path */
 
-    return file;
+    return newfile;
 }
 
 #if defined(USG) && !defined(CRAY) && !defined(SVR4) && !defined(__UNIXOS2__) && !defined(clipper) && !defined(__clipper__)
@@ -851,7 +861,7 @@ int rename (char *from, char *to)
 }
 #endif /* USGISH */
 
-void redirect (const char *line, const char *makefile)
+void redirect (const char *line, const char *makefile, const char *filelist[])
 {
     struct stat st;
     FILE *fdin, *fdout;
@@ -873,26 +883,26 @@ void redirect (const char *line, const char *makefile)
     if (!makefile) {
         if (stat ("Makefile", &st) == 0)
             makefile = "Makefile";
-        else if (stat ("makefile", &st) == 0)
-            makefile = "makefile";
         else
-            fatalerr ("[mM]akefile is not present\n");
+            makefile = "makefile";
     }
-    else {
-        if (stat (makefile, &st) != 0) {
-            /* create a dummy makefile for the output */
-            if ((fdin = fopen (makefile, OPEN_WRITE_TEXT)) != NULL) {
-                fprintf(fdin, "# GENERATED BY MAKEDEPEND\n\n");
-                fclose(fdin);
-            }
+    assert (makefile);
+    if (stat (makefile, &st) != 0) {
+        /* create a dummy makefile for the output */
+        if ((fdin = fopen (makefile, OPEN_WRITE_TEXT)) != NULL) {
+            fprintf(fdin, "# GENERATED BY MAKEDEPEND\n\n");
+            fclose(fdin);
+            stat (makefile, &st);
         }
-        stat (makefile, &st);
+        /* on failure to create the file, an error will be issued when trying to re-open it */
     }
+
     if ((fdin = fopen (makefile, OPEN_READ_TEXT)) == NULL)
         fatalerr ("cannot open \"%s\"\n", makefile);
     sprintf (backup, "%s.bak", makefile);
     _unlink (backup);
 #if defined(WIN32) || defined(__UNIXOS2__) || defined(__CYGWIN__)
+    assert(fdin);
     fclose (fdin);
 #endif
     if (rename (makefile, backup) < 0)
@@ -903,6 +913,8 @@ void redirect (const char *line, const char *makefile)
 #endif
     if ((fdout = freopen (makefile, OPEN_WRITE_TEXT, stdout)) == NULL)
         fatalerr ("cannot open \"%s\"\n", backup);
+    assert(fdin);
+    assert(fdout);
     len = strlen (line);
     while (!found && fgets (buf, BUFSIZ, fdin)) {
         if (*buf == '#' && strncmp (line, buf, len) == 0)
@@ -914,9 +926,50 @@ void redirect (const char *line, const char *makefile)
             warning ("Adding new delimiting line and dependencies...\n");
         puts (line);                  /* same as fputs(fdout); but with newline */
     }
-    else if (append) {
+    else if (filelist) {
+        int skip_rule = 0;
+        int skip_newlines = 0;
         while (fgets (buf, BUFSIZ, fdin)) {
-            fputs (buf, fdout);
+            /* check whether this is the start of a dependency line (with the
+             * name of the target
+             */
+            char *ptr;
+            if (buf[0] != '#' && buf[0] > ' ' && (ptr = strchr (buf, ':')) != NULL) {
+                /* extract the target name (replacing escaped space characters
+                 * by a single space; this is a special case for filenames with
+                 * spaces)
+                 */
+                size_t length = ptr - buf;
+                char *target = malloc(length);
+                size_t i, j;
+                const char **fp;
+                if (!target)
+                    continue;
+                for (i = j = 0; i < length; i++, j++) {
+                    if (buf[i] == '\\' && buf[i + 1] == ' ')
+                        i++;    /* ignore \ if followed by a space */
+                    target[j] = buf[i];
+                }
+                while (j > 0 && target[j - 1] <= ' ')
+                    j--;        /* delete trailing whitespace */
+                target[j] = '\0';
+                /* check whether this target exists in the filelist; if so,
+                 * skip it in copying the original file to the output file
+                 */
+                skip_rule = 0;
+                for (fp = filelist; *fp && !skip_rule; fp++) {
+                    const char *basename = base_name(*fp);
+                    const char *tgtname = targetname(basename);
+                    if (strcmp (target, tgtname) == 0)
+                        skip_rule = 1;
+                    free ((void*)basename);
+                    free ((void*)tgtname);
+                }
+                /* after a first rule, ignore empty lines */
+                skip_newlines = 1;
+            }
+            if (!skip_rule && (buf[0] != '\n' || !skip_newlines))
+                fputs(buf, fdout);
         }
     }
     fclose(fdin);
@@ -929,6 +982,11 @@ void redirect (const char *line, const char *makefile)
 #else
     fchmod (fileno (fdout), st.st_mode);
 #endif /* USGISH */
+}
+
+void memoryerr (void)
+{
+    fatalerr ("insufficient memory (or memory allocation failure)\n");
 }
 
 void fatalerr (const char *msg, ...)
