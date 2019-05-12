@@ -5,7 +5,7 @@
 
 makedepend scans a list of C and C++ source files for `#include` statements,
 and then rewrites the makefile to add these header files as "dependencies" of
-the target for the C/C++ files. This will cause the `make` program to recompile
+the target for the C/C++ files. This will cause the Make program to recompile
 the C/C++ sources if one of the header files is modified.
 
 Originally, makedepend was distributed as part of the X Window system
@@ -78,8 +78,44 @@ depend :
 
 The `-f` option sets the name of the output file. This output file ("makefile.dep")
 is then included in the makefile. The `include` directive (on the last line) is
-prefixed by a `-` so that `make` won't complain when makefile.dep is initially
-missing (this is the GNU `make` syntax; other `make`'s may need a different syntax).
+prefixed by a `-` so that Make won't complain when makefile.dep is initially
+missing (this is the GNU Make syntax; other Make's may need a different syntax).
+
+### Automatic updating dependencies
+
+The above examples update the dependencies when making the target `depend`. This
+step can also be automated, such that the dependencies are updated when some
+targets when the relevant source files change. To this end, the rule for
+makedepend must list the source files as the dependencies, and the targets for
+the object file must list the generated output file as a dependency.
+
+```make
+SRCS   = file1.c file2.c
+CFLAGS = -Wall -DDEBUG -I../include
+
+makefile.dep : $(SRCS)
+        makedepend -a -f$@ -- $(CFLAGS) $?
+
+$(SRCS:.c=.o) : makefile.dep
+
+-include makefile.dep
+```
+
+Note that the shell line for makedepend uses the `$?` macro to list only the
+files from `$(SRCS)` on the command line that are newer than the target
+`makefile.dep`. This reduces the time needed to update the dependencies, because
+only the modified files are scanned.
+
+The other important change on the shell line for makedepend is the `-a` option.
+Without this option, the resulting `makefile.dep` would contain only the
+dependencies of the files of the most recent run. By default, makedepend removes
+all dependency lines from the output file. The `-a` option lets makedepend
+remove <em>only</em> the dependency lines of the files on the command line
+(which will be regenerated).
+
+The line to add `makefile.dep` as a dependency to all targets that are built
+from the list of sources, is GNU Make syntax, using suffix substitution of the
+`.c` file extension to `.o`.
 
 ### Predefined variables
 
@@ -104,7 +140,7 @@ paths with the `-I-` option and set a specific path for "system" includes.
 
 When source files are stored in different directories, with `vpath`'s set to
 locate the files, add the source files as dependencies on the `depend` target
-line. This way, `make` will create the source file list after the `vpath` lookup.
+line. This way, Make will create the source file list after the `vpath` lookup.
 
 ```make
 CFLAGS   =-Wall -I./startup/cmsis -std=c1x
@@ -124,14 +160,14 @@ depend : $(USBHID_O:.o=.c) $(CMSIS_O:.o=.c) $(COREUSB_O:.o=.c)
 In the example above, from the top there are the definitions of `CFLAGS` and of
 lists of object files for various modules. It is common to list the object files,
 because these are the dependencies of the linker command. Following that, are
-`vpath` definitions, indicating where `make` will search for the C files (this
-example assumes GNU make, the syntax may be different for other make utilities).
+`vpath` definitions, indicating where Make will search for the C files (this
+example assumes GNU Make, the syntax may be different for other Make utilities).
 
 The `depend` target is declared as "phony" for good measure (as it is not a target
 that will exist as a file). The dependencies of the `depend` target are the three
-lists with the object files, excapt that the extension `.o` is replaced by `.c`.
+lists with the object files, except that the extension `.o` is replaced by `.c`.
 This enables you to use the automatic macro `$^` (for "all sources") on the
-`makedepend` command line. When `make` builds the file list for `$^`, it looks
+`makedepend` command line. When Make builds the file list for `$^`, it looks
 through the `vpath` directories for the files, and it will add the directories
 to the files where applicable. For example, if `bootLPC11Uxx.c` is found in
 `./startup/cmsis/`, the full path `./startup/cmsis/bootLPC11Uxx.c` is included
@@ -316,8 +352,6 @@ been modified to bring new features and improvements:
 * Let makedepend display the (platform-specific) list of predefined variables
   with the `-h -v` arguments (verbose help).
 * Replace the option `-Y` by `-I-`.
-* Added the `-c` command line option, to include the source file in the list of
-  dependencies for the object file.
 * Let makedepend create the "makefile" with dependencies if it does not yet
   exist.
 * Read the `INCLUDE` environment variable on Microsoft Windows (instead of the
