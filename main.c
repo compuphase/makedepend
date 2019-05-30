@@ -35,36 +35,40 @@ in this Software without prior written authorization from The Open Group.
 #endif /* hpux */
 
 #ifdef X_POSIX_C_SOURCE
-#define _POSIX_C_SOURCE X_POSIX_C_SOURCE
-#include <signal.h>
-#undef _POSIX_C_SOURCE
+# define _POSIX_C_SOURCE X_POSIX_C_SOURCE
+# include <signal.h>
+# undef _POSIX_C_SOURCE
 #else
-#if defined(X_NOT_POSIX) || defined(_POSIX_SOURCE)
-#include <signal.h>
-#else
-#define _POSIX_SOURCE
-#include <signal.h>
-#undef _POSIX_SOURCE
-#endif
+# if defined(X_NOT_POSIX) || defined(_POSIX_SOURCE)
+#   include <signal.h>
+# else
+#   define _POSIX_SOURCE
+#   include <signal.h>
+#   undef _POSIX_SOURCE
+# endif
 #endif
 
-#if defined _MSC_VER
-#include <io.h>
-#define strcasecmp(s1, s2)  _stricmp((s1), (s2))
+#if (defined _WIN32 || defined __WIN32__) && !defined WIN32
+# define WIN32
+#endif
+
+#if defined WIN32
+# include <io.h>
+# define strcasecmp(s1, s2)  _stricmp((s1), (s2))
+# define open(name, method)  _open((name), (method))
+# define close(handle)       _close(handle)
+# define read(handle, buffer, size) _read((handle), (buffer), (size))
+# define unlink(name)        _unlink(name)
 #endif
 
 #include <stdarg.h>
 
 #ifdef MINIX
-#define USE_CHMOD   1
+# define USE_CHMOD   1
 #endif
 
 #ifdef DEBUG
 int _debugmask;
-#endif
-
-#if (defined _WIN32 || defined __WIN32__) && !defined WIN32
-#define WIN32
 #endif
 
 /* #define DEBUG_DUMP */
@@ -126,9 +130,9 @@ const char **includedirsnext = includedirs;
 char *notdotdot[MAXDIRS];
 static int cmdinc_count = 0;
 static char *cmdinc_list[2 * MAXINCFILES];
-char *objprefix = "";
-char *objsuffix = OBJSUFFIX;
-static char *startat = "# GENERATED DEPENDENCIES. DO NOT DELETE.";
+const char *objprefix = "";
+const char *objsuffix = OBJSUFFIX;
+static const char *startat = "# GENERATED DEPENDENCIES. DO NOT DELETE.";
 int width = 78;
 static boolean make_backup = TRUE;
 static boolean include_cfile = FALSE;
@@ -151,7 +155,7 @@ static
 #else
     void
 #endif
-catch (int sig)
+_catch (int sig)
 {
     fflush (stdout);
     fatalerr ("got signal %d\n", sig);
@@ -202,14 +206,14 @@ int main (int argc, char *argv[])
         char quotechar = '\0';
 
         nargc = 1;
-        if ((afd = _open (argv[1] + 1, O_RDONLY)) < 0)
+        if ((afd = open (argv[1] + 1, O_RDONLY)) < 0)
             fatalerr ("cannot open \"%s\"\n", argv[1] + 1);
         fstat (afd, &ast);
         args = (char *) malloc (ast.st_size + 1);
-        if ((ast.st_size = _read (afd, args, ast.st_size)) < 0)
+        if ((ast.st_size = read (afd, args, ast.st_size)) < 0)
             fatalerr ("failed to read %s\n", argv[1] + 1);
         args[ast.st_size] = '\0';
-        _close (afd);
+        close (afd);
         for (p = args; *p; p++) {
             if (quotechar) {
                 if (quotechar == '\\' || (*p == quotechar && p[-1] != '\\'))
@@ -291,9 +295,9 @@ int main (int argc, char *argv[])
                 /* Undef's override all -D's so save them up */
                 numundefs++;
                 if (numundefs == 1)
-                    undeflist = malloc (sizeof (char *));
+                    undeflist = (char**)malloc (sizeof (char *));
                 else
-                    undeflist = realloc (undeflist, numundefs * sizeof (char *));
+                    undeflist = (char**)realloc (undeflist, numundefs * sizeof (char *));
                 i = 2;
                 if (argv[0][i] == '\0') {
                     argv++;
@@ -417,8 +421,9 @@ int main (int argc, char *argv[])
                         fatalerr ("Too many -include flags.\n");
                     argc--;
                     argv++;
-                    buf = malloc (strlen (DASH_INC_PRE) +
-                        strlen (argv[0]) + strlen (DASH_INC_POST) + 1);
+                    buf = (char*)malloc (strlen (DASH_INC_PRE) +
+                                         strlen (argv[0]) +
+                                         strlen (DASH_INC_POST) + 1);
                     if (!buf)
                         fatalerr ("out of memory at " "-include string\n");
                     cmdinc_list[2 * cmdinc_count + 0] = argv[0];
@@ -492,7 +497,7 @@ int main (int argc, char *argv[])
         #endif
     }
 
-    redirect (startat, makefile, (accumulate ? filelist : NULL));
+    redirect (startat, makefile, (accumulate ? (const char**)filelist : NULL));
 
     /*
      * catch signals.
@@ -501,22 +506,22 @@ int main (int argc, char *argv[])
 
 /*  should really reset SIGINT to SIG_IGN if it was.  */
 #ifdef SIGHUP
-    signal (SIGHUP, catch);
+    signal (SIGHUP, _catch);
 #endif
-    signal (SIGINT, catch);
+    signal (SIGINT, _catch);
 #ifdef SIGQUIT
-    signal (SIGQUIT, catch);
+    signal (SIGQUIT, _catch);
 #endif
-    signal (SIGILL, catch);
+    signal (SIGILL, _catch);
 #ifdef SIGBUS
-    signal (SIGBUS, catch);
+    signal (SIGBUS, _catch);
 #endif
-    signal (SIGSEGV, catch);
+    signal (SIGSEGV, _catch);
 #ifdef SIGSYS
-    signal (SIGSYS, catch);
+    signal (SIGSYS, _catch);
 #endif
 #else
-    sig_act.sa_handler = catch;
+    sig_act.sa_handler = _catch;
 #if defined(_POSIX_SOURCE) || !defined(X_NOT_POSIX)
     sigemptyset (&sig_act.sa_mask);
     sigaddset (&sig_act.sa_mask, SIGINT);
@@ -610,7 +615,7 @@ struct filepointer *getfile (const char *file)
         memoryerr();
     assert(content);
     content->f_name = file;
-    if ((fd = _open (file, O_RDONLY)) < 0) {
+    if ((fd = open (file, O_RDONLY)) < 0) {
         warning ("cannot open \"%s\"\n", file);
         content->f_p = content->f_base = content->f_end = (char *) malloc (1);
         *content->f_p = '\0';
@@ -621,12 +626,12 @@ struct filepointer *getfile (const char *file)
     if (content->f_base == NULL)
         memoryerr ();
     assert(content->f_base);
-    if ((st.st_size = _read (fd, content->f_base, st.st_size)) < 0)
+    if ((st.st_size = read (fd, content->f_base, st.st_size)) < 0)
         fatalerr ("failed to read %s\n", file);
 #ifdef __UNIXOS2__
     st.st_size = elim_cr (content->f_base, st.st_size);
 #endif
-    _close (fd);
+    close (fd);
     content->f_len = st.st_size + 1;
     content->f_p = content->f_base;
     content->f_end = content->f_base + st.st_size;
@@ -900,7 +905,7 @@ void redirect (const char *line, const char *makefile, const char *filelist[])
     if ((fdin = fopen (makefile, OPEN_READ_TEXT)) == NULL)
         fatalerr ("cannot open \"%s\"\n", makefile);
     sprintf (backup, "%s.bak", makefile);
-    _unlink (backup);
+    unlink (backup);
 #if defined(WIN32) || defined(__UNIXOS2__) || defined(__CYGWIN__)
     assert(fdin);
     fclose (fdin);
@@ -940,7 +945,7 @@ void redirect (const char *line, const char *makefile, const char *filelist[])
                  * spaces)
                  */
                 size_t length = ptr - buf;
-                char *target = malloc(length);
+                char *target = (char*)malloc(length);
                 size_t i, j;
                 const char **fp;
                 if (!target)
@@ -974,7 +979,7 @@ void redirect (const char *line, const char *makefile, const char *filelist[])
     }
     fclose(fdin);
     if (!make_backup)
-        _unlink (backup);
+        unlink (backup);
     fflush (fdout);
     /* don't close fdout, because it is the re-opened stdout */
 #if defined(USGISH) || defined(_SEQUENT_) || defined(USE_CHMOD)

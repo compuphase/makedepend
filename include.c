@@ -321,7 +321,7 @@ inc_path(const char *file, char *include, int type)
      * should be at the end.
      */
     if ((type == INCLUDE) || (type == INCLUDEDOT))
-        includedirsnext = includedirs;
+        includedirsnext = (const char**)includedirs;
     pp = includedirsnext;
 
     for (; *pp; pp++) {

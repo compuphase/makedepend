@@ -101,9 +101,9 @@ in this Software without prior written authorization from The Open Group.
 typedef unsigned char boolean;
 
 struct symtab {
-  char    *s_name;
-  char    *s_value;
-  char    *s_args;
+  const char *s_name;
+  const char *s_value;
+  const char *s_args;
 };
 
 /* possible i_flag */
@@ -183,3 +183,6 @@ void   fatalerr(const char*, ...);
 void   warning(const char*, ...);
 void   warning1(const char*, ...);
 void   showusage(void);
+
+/* defined in main.c */
+extern const char * const directives[];

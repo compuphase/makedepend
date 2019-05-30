@@ -220,7 +220,7 @@ build_keyword_list (const char* keys, const char* values)
         const char *ptmp;
         int len;
         /* alloc new member */
-        pnew = malloc(sizeof(*pnew));
+        pnew = (keyword_type*)malloc(sizeof(*pnew));
         if (!pnew)
         {
             fprintf(stderr, "out of memory in my_eval_variable\n");
@@ -232,7 +232,7 @@ build_keyword_list (const char* keys, const char* values)
         len = 0;
         while (*ptmp && (*ptmp != ','))
             ptmp++, len++;
-        pnew->name = malloc(len+1);
+        pnew->name = (char*)malloc(len+1);
         if (!pnew->name)
             memoryerr();
         assert(pnew->name);
@@ -247,7 +247,7 @@ build_keyword_list (const char* keys, const char* values)
         len = 0;
         while (*ptmp && (*ptmp != ',') && (*ptmp != ')'))
             ptmp++, len++;
-        pnew->value = malloc(len+1);
+        pnew->value = (char*)malloc(len+1);
         if (!pnew->value)
             memoryerr();
         assert(pnew->value);
@@ -318,7 +318,7 @@ my_eval_variable (IfParser *ip, const char *var, int len, const char *args)
         int newline_len = 0, newline_offset = 0;
 
         newline_len = 64; /* start with some buffer, might increase later */
-        newline = malloc(newline_len);
+        newline = (char*)malloc(newline_len);
         if (!newline)
         {
             fprintf(stderr, "out of memory in my_eval_variable\n");
@@ -350,7 +350,7 @@ my_eval_variable (IfParser *ip, const char *var, int len, const char *args)
                 if (newline_offset + 2 >= newline_len)
                 {
                 newline_len *= 2;
-                newline = realloc(newline, newline_len);
+                newline = (char*)realloc(newline, newline_len);
                 if (!newline)
                 {
                     fprintf(stderr, "out of memory in my_eval_variable\n");
@@ -370,7 +370,7 @@ my_eval_variable (IfParser *ip, const char *var, int len, const char *args)
                 if (newline_offset + 2 >= newline_len)
                 {
                 newline_len *= 2;
-                newline = realloc(newline, newline_len);
+                newline = (char*)realloc(newline, newline_len);
                 if (!newline)
                 {
                     fprintf(stderr, "out of memory in my_eval_variable\n");
@@ -389,7 +389,7 @@ my_eval_variable (IfParser *ip, const char *var, int len, const char *args)
             if (newline_offset + 2 >= newline_len)
             {
                 newline_len *= 2;
-                newline = realloc(newline, newline_len);
+                newline = (char*)realloc(newline, newline_len);
                 if (!newline)
                 {
                 fprintf(stderr, "out of memory in my_eval_variable\n");

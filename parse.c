@@ -28,7 +28,6 @@ in this Software without prior written authorization from The Open Group.
 
 #include "def.h"
 
-extern char *directives[];
 extern struct inclist   inclist[ MAXFILES ],
             *inclistnext,
             maininclist;
@@ -106,7 +105,7 @@ static int
 deftype (char *line, struct filepointer *filep,
          struct inclist *file_red, struct inclist *file, int parse_it)
 {
-    register char   *p;
+    register char *p;
     char    *directive, savechar, *q;
     register int    ret;
 
@@ -122,7 +121,7 @@ deftype (char *line, struct filepointer *filep,
         p++;
     savechar = *p;
     *p = '\0';
-    ret = match(directive, directives);
+    ret = match(directive, (const char**)directives);
     *p = savechar;
 
     /* If we don't recognize this compiler directive or we happen to just
@@ -207,7 +206,7 @@ deftype (char *line, struct filepointer *filep,
             if (!sym)
                 break;
 
-            p = (*sym)->s_value;
+            p = (char*)(*sym)->s_value;
             debug(3,("%s : #includes SYMBOL %s = %s\n",
                    file->i_incstring,
                    (*sym) -> s_name,
@@ -388,13 +387,13 @@ define2(const char *name, const char *args, const char *val, struct inclist *fil
             name, (*sp)->s_value, val, file->i_file));
 
         if ( (*sp)->s_args )
-            free((*sp)->s_args);
+            free((void*) (*sp)->s_args);
         if (args)
             (*sp)->s_args = copy(args);
         else
             (*sp)->s_args = NULL;
 
-        free((*sp)->s_value);
+        free((void*) (*sp)->s_value);
         (*sp)->s_value = copy(val);
         return;
     }
@@ -512,7 +511,7 @@ static char args[S_ARGS_BUFLEN];
         val++;
 
     if (!*val) /* define statements without a value will get a value of 1 */
-        val = "1";
+        val = (char*)"1";
 
     if (args && (strlen(args)>0))
         define2(def, args, val, file);
@@ -602,8 +601,8 @@ merge2defines(struct inclist *file1, struct inclist *file2)
 
         while ((last1 >= first1) && (last2 >= first2))
         {
-            char *s1=file1->i_defs[first1]->s_name;
-            char *s2=file2->i_defs[first2]->s_name;
+            const char *s1=file1->i_defs[first1]->s_name;
+            const char *s2=file2->i_defs[first2]->s_name;
 
             assert(i_defs);
             if (strcmp(s1,s2) < 0)

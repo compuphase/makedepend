@@ -181,7 +181,7 @@ in `$^`.
 <dd>
   Defines a symbol for the makedepend preprocessor (which works like the
   C/C++ preprocessor). When no value is explicitly defined, the symbol is
-  as "1".
+  defined as "1".
 </dd>
 
 <dt> <code>-I</code>path </dt>
@@ -191,8 +191,8 @@ in `$^`.
   <br><br>
   By default, makedepend appends the standard include directories at the end
   of the directory list. In Linux, Unix and OS/2, makedepend evaluates the
-  C_INCLUDE_PATH environment variable for the standard includes; in
-  Microsoft Windows, makedepend evaluates the INCLUDE environment
+  <code>C_INCLUDE_PATH</code> environment variable for the standard includes; in
+  Microsoft Windows, makedepend evaluates the <code>INCLUDE</code> environment
   variable. When the option <code>-I-</code> is set, makedepend does <em>not</em>
   append the standard include directories (and thus prevents makedepend from
   searching the standard include directories).
@@ -239,7 +239,7 @@ in `$^`.
 
 <dt> <code>-h</code> </dt>
 <dd>
-  Shows brief usage information for makedepend. When verbose output is
+  Help. Shows brief usage information for makedepend. When verbose output is
   enabled (see <code>-v</code>), the list of predefined variables is listed too.
 </dd>
 
@@ -262,7 +262,7 @@ in `$^`.
   usually used to designate a different directory for the object file.
   <br><br>
   If the prefix pattern starts with a minus ("-"), that prefix is <em>removed</em>
-  from the object filename if it matches.
+  from the object filename (if the object filename starts with that prefix).
   <br><br>
   The default prefix string is the empty string.
 </dd>

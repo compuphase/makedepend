@@ -70,7 +70,7 @@ char *
 targetname(const char *base)
 {
     int prefixlen;
-    char *target = malloc(BUFSIZ);
+    char *target = (char*)malloc(BUFSIZ);
     if (!target)
         memoryerr();
 
@@ -88,7 +88,7 @@ targetname(const char *base)
     }
     strxcat(target, objsuffix, BUFSIZ, 0);
 
-    target = realloc(target, strlen(target) + 1);
+    target = (char*)realloc(target, strlen(target) + 1);
     assert(target != NULL); /* since the size shrinks, realloc always succeeds */
     return target;
 }
