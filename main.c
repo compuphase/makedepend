@@ -847,7 +847,7 @@ static char *base_name (const char *file)
         p--;
 #endif
     if (p != newfile)
-        newfile = p + 1;   /* return name after last path */
+        memmove(newfile, p + 1, strlen(p)); /* return name after last path */
 
     return newfile;
 }
