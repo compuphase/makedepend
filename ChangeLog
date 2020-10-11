@@ -1,3 +1,27 @@
+github commit
+Author: Thiadmer Riemersma
+Date:   Sunday 11 October 2020
+
+    makedepend 1.0.7
+
+    Added the -e command line option, to exclude "system" include files on
+    the dependency lists.
+
+    Handle each source file only once, even if it appears multiple times on
+    the command line.
+
+
+github commit 2597250be5a067f5a8caa67a63e4e8aba19464cc
+Author: Thiadmer Riemersma
+Date:   Sunday 25 October 2019
+
+    makedepend 1.0.6
+
+    Fix for a memory allocation bug.
+
+    Fixes for portability to Linux.
+
+
 github commit a4a8449910e18b014550003ebc7668abd8a45051
 Author: Thiadmer Riemersma
 Date:   Monday 13 May 2019

@@ -94,9 +94,9 @@ targetname(const char *base)
 }
 
 static void
-pr(struct inclist *ip, const char *file, const char *base)
+pr(struct inclist *ip, const char *file)
 {
-    static const char *lastfile;
+    static const char *lastfile = NULL;
     static int  current_len;
     int    len, i;
     char   buf[ BUFSIZ ];
@@ -106,12 +106,14 @@ pr(struct inclist *ip, const char *file, const char *base)
     len = strlen(ip->i_file)+1;
     assert(file != NULL);
     if (file != lastfile) {
-        const char *target = targetname(base);
+        const char *basename = base_name (file);
+        const char *target = targetname(basename);
         strcpy(buf, "\n");
         strxcat(buf, target, sizeof(buf), 1);
         strxcat(buf, " : ", sizeof(buf), 0);
         strxcat(buf, ip->i_file, sizeof(buf), 1);
         lastfile = file;
+        free((void*)basename);
         free((void*)target);
         len = current_len = strlen(buf);
     } else if (current_len + len + 5 > width) {
@@ -138,7 +140,7 @@ pr(struct inclist *ip, const char *file, const char *base)
 }
 
 void
-recursive_pr_include(struct inclist *head, const char *file, const char *base)
+recursive_pr_include(struct inclist *head, const char *file)
 {
     int i;
 
@@ -146,7 +148,7 @@ recursive_pr_include(struct inclist *head, const char *file, const char *base)
         return;
     head->i_flags |= MARKED;
     if (head->i_file != file || (head->i_flags & FORCED_DEP) != 0)
-        pr(head, file, base);
+        pr(head, file);
     for (i=0; i<head->i_listlen; i++)
-        recursive_pr_include(head->i_list[ i ], file, base);
+        recursive_pr_include(head->i_list[ i ], file);
 }

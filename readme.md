@@ -230,6 +230,14 @@ in `$^`.
   dependency line.
 </dd>
 
+<dt> <code>-e</code> </dt>
+<dd>
+  Excludes <em>system includes</em> from the list of dependencies. System
+  includes are files that are between angle brackets (after the #include).
+  These are less relevant to list as dependecies; the system include files
+  can be considered stable.
+</dd>
+
 <dt> <code>-f</code>makefile </dt>
 <dd>
   Sets the output filename, instead of the default name "makefile". When set
@@ -269,8 +277,9 @@ in `$^`.
 
 <dt> <code>-s</code>string </dt>
 <dd>
-  Sets the delimiter string below which makedepend writes the generated
-  depedencies. The default string is "#&nbsp;GENERATED&nbsp;DEPENDENCIES.&nbsp;DO&nbsp;NOT&nbsp;DELETE.".
+  Sets the delimiter string (or "separator") below which makedepend writes the
+  generated depedencies. The default string is
+  "#&nbsp;GENERATED&nbsp;DEPENDENCIES.&nbsp;DO&nbsp;NOT&nbsp;DELETE.".
 </dd>
 
 <dt> <code>-v</code> </dt>
@@ -291,6 +300,9 @@ in `$^`.
   Processes the file includes it before processing each regular input file.
   This has the same affect as if the specified file were listed in an
   <code>#include</code> directive at the very to of each regular input file.
+  <br><br>
+  The <code>-include</code> option may be present multiple times on the command
+  line.
 </dd>
 
 <dt> <code>--</code> options <code>--</code> </dt>
@@ -342,13 +354,19 @@ been modified to bring new features and improvements:
 * Filenames with space characters are written with the space characters
   "escaped" with a backslash (in a way compatible with GNU Make).
 * The `-a` command line option now does an intelligent "append", where
-  dependencies for new files are added, but dependencies for existing files
-  are replaced.
+  dependencies for new files are added, but if a file that makedepend scans
+  already appears in the section below the delimiter, the dependencies for that
+  file are replaced.
 * Added the `-b` command line option, to skip making backups of the input
   makefiles.
 * Added the `-c` command line option, to add the source file as a dependency
   for each target (in addition to the files included by that source file).
-* Added the `-h` command line option, to show program usage.
+* Added the `-e` command line option, to list only project-specific include
+  files as dependencies (and skip any system includes). The rationale is that
+  this option makes a Makefile more portable, because all listed dependencies
+  are part of the project (all system-specific dependencies are excluded).
+* Added the `-h` command line option, to show program usage. The `-?` option is
+  equivalent to `-h`.
 * Let makedepend display the (platform-specific) list of predefined variables
   with the `-h -v` arguments (verbose help).
 * Replace the option `-Y` by `-I-`.

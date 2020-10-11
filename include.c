@@ -264,7 +264,7 @@ inc_path(const char *file, char *include, int type)
      * Check all previously found include files for a path that
      * has already been expanded.
      */
-    if ((type == INCLUDE) || (type == INCLUDEDOT))
+    if ((type == INCLUDE) || (type == INCLUDEUSR))
         inclistnext = inclist;
     ip = inclistnext;
 
@@ -280,8 +280,8 @@ inc_path(const char *file, char *include, int type)
          * If the path was surrounded by "" or is an absolute path,
          * then check the exact path provided.
          */
-        if ((type == INCLUDEDOT) ||
-            (type == INCLUDENEXTDOT) ||
+        if ((type == INCLUDEUSR) ||
+            (type == INCLUDENEXTUSR) ||
             (*include == '/')) {
             if (stat(include, &st) == 0 && !S_ISDIR(st.st_mode))
                 return newinclude(include, include);
@@ -293,7 +293,7 @@ inc_path(const char *file, char *include, int type)
          * If the path was surrounded by "" see if this include file is
          * in the directory of the file being parsed.
          */
-        if ((type == INCLUDEDOT) || (type == INCLUDENEXTDOT)) {
+        if ((type == INCLUDEUSR) || (type == INCLUDENEXTUSR)) {
 			register const char *p;
             for (p=file+strlen(file); p>file; p--)
                 if (*p == '/')
@@ -320,7 +320,7 @@ inc_path(const char *file, char *include, int type)
      * Check the include directories specified.  Standard include dirs
      * should be at the end.
      */
-    if ((type == INCLUDE) || (type == INCLUDEDOT))
+    if ((type == INCLUDE) || (type == INCLUDEUSR))
         includedirsnext = (const char**)includedirs;
     pp = includedirsnext;
 

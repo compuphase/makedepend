@@ -44,6 +44,8 @@ makedepend \- create dependencies in makefiles
 ] [
 .B \-c
 ] [
+.B \-e
+] [
 .BI \-f makefile
 ] [
 .B \-h
@@ -244,6 +246,12 @@ only lists all files
 .I included
 by the source file on the dependency line.
 .TP 5
+.B \-e
+Excludes
+.I system includes
+from the list of dependencies. System includes are files that are between
+angle brackets (after the #include). These are less relevant to list as
+dependecies; the system include files can be considered stable.
 .B \-f\fImakefile\fP
 Filename.
 This allows you to specify an alternate makefile in which

@@ -136,14 +136,13 @@ static const char *startat = "# GENERATED DEPENDENCIES. DO NOT DELETE.";
 int width = 78;
 static boolean make_backup = TRUE;
 static boolean include_cfile = FALSE;
+boolean exclude_sysincludes = FALSE;
 boolean printed = FALSE;
 boolean verbose = FALSE;
 boolean show_where_not = FALSE;
 
 /* Warn on multiple includes of same file */
 boolean warn_multiple = FALSE;
-
-static char*  base_name(const char *file);
 
 static void setfile_vars (const char *name, struct inclist *file);
 static void setfile_cmdinc (struct filepointer *filep, long count, char **list);
@@ -191,6 +190,7 @@ int main (int argc, char *argv[])
     boolean systeminclude = TRUE;
     boolean showhelp = FALSE;
 
+    memset (filelist, 0, sizeof (filelist));
     ProgramName = argv[0];
 
     while (psymp->s_name) {
@@ -251,10 +251,15 @@ int main (int argc, char *argv[])
             continue;
         }
         if (**argv != '-') {
+            char **p;
             /* treat +thing as an option for C++ */
             if (endmarker && **argv == '+')
                 continue;
-            *fp++ = argv[0];
+            /* check for a file appearing twice on the command line */
+            for (p = filelist; p != fp && (strcmp (*p, argv[0]) != 0); p++)
+                {}
+            if (p == fp)    /* reached the end of the list, so this is a new file */
+                *fp++ = argv[0];
             continue;
         }
         switch (argv[0][1]) {
@@ -328,6 +333,13 @@ int main (int argc, char *argv[])
                     goto badopt;
                 include_cfile = TRUE;
                 break;
+            case 'e':
+                if (endmarker)
+                    break;
+                if (argv[0][2])
+                    goto badopt;
+                exclude_sysincludes = TRUE;
+                break;
             case 'w':
                 if (endmarker)
                     break;
@@ -397,6 +409,7 @@ int main (int argc, char *argv[])
                     argc--;
                 }
                 break;
+            case '?':
             case 'h':
                 if (endmarker)
                     break;
@@ -569,19 +582,16 @@ int main (int argc, char *argv[])
      * now peruse through the list of files.
      */
     for (fp = filelist; *fp; fp++) {
-        const char *basename = base_name (*fp);
         filecontent = getfile (*fp);
         setfile_cmdinc (filecontent, cmdinc_count, cmdinc_list);
         ip = newinclude (*fp, (char *) NULL);
         setfile_vars (*fp, ip);
-
         find_includes (filecontent, ip, ip, 0, TRUE);
         freefile (filecontent);
         if (include_cfile)
             ip->i_flags |= FORCED_DEP;
-        recursive_pr_include (ip, ip->i_file, basename);
+        recursive_pr_include (ip, ip->i_file);
         inc_clean ();
-        free ((void*)basename);
     }
     if (printed)
         printf ("\n");
@@ -825,7 +835,7 @@ char *getnextline (struct filepointer *filep)
  * Strip the file name down to what we want to see in the Makefile.
  * (It will get objprefix and objsuffix around it.)
  */
-static char *base_name (const char *file)
+char *base_name (const char *file)
 {
     char *p;
     char *newfile = copy (file);    /* creates a copy on the heap */
@@ -1023,7 +1033,7 @@ void warning1 (const char *msg, ...)
 
 void showusage (void)
 {
-    printf("makedepend 1.0.6\n\n");
+    printf("makedepend 1.0.7\n\n");
     printf("Usage: makedepend [options] <file1.c> [file2.c] [...]\n\n");
     printf("-D<name>\tAdd a definition for <name> (with value 1).\n");
     printf("-D<name>=<def>\tAdd a definition for <name>, with value <def>.\n");
@@ -1033,25 +1043,30 @@ void showusage (void)
     printf("-a\t\tAppend dependencies to the end of the file instead of replacing\n"
            "\t\tthem.\n");
     printf("-b\t\tDo not create a backup file of the input makefile.\n");
-    printf("-c\t\tInclude the C/C++ file in de dependencies for the object file.\n");
+    printf("-c\t\tInclude the C/C++ source file in the dependencies for the\n"
+           "\t\tobject file.\n");
+    printf("-e\t\tExclude \"system\" includes from the dependency list.\n");
     printf("-f<makefile>\tSet the file into which the output is written (default is\n"
            "\t\t\"Makefile\"). Setting -f- sends the output to standard output.\n");
-    printf("-h\t\tShow usage information (this text).\n");
+    printf("-h\t\tShow usage information (this text).");
+    printf(verbose ? "\n" : " Use -h -v for details.\n");
     printf("-m\t\tWarn about multiple inclusions.\n");
     printf("-o<suffix>\tObject file extension. The default is \".o\".\n");
     printf("-p<prefix>\tObject file prefix, typically used to set a directory. If the\n"
            "\t\tprefix starts with a \"-\", that prefix is stripped from the\n"
            "\t\tobject file if the start of the object file matches the word\n"
            "\t\tthat follows the \"-\".\n");
-    printf("-s<delimitor>\tDelimiter string in the makefile, below which generated\n"
-           "\t\tdependencies are written.\n");
+    printf("-s<delimitor>\tDelimiter string (or \"separator\") in the makefile, below which\n"
+           "\t\tgenerated dependencies are written.\n");
     printf("-v\t\tVerbose output.\n");
     printf("-w<width>\tMaximum line width of the generated output (default is 78\n"
            "\t\tcharacters).\n");
     printf("--\t\tAny -D, -I or -U argument following a double hyphen is handled,\n"
            "\t\tbut other options are silently ignored. Use another double\n"
            "\t\thyphen to toggle back to normal mode.\n");
-    printf("-include file\tThe file is set to be implicitly included in every source file.\n");
+    printf("-include <file>\tThe specified file is implicitly included in every source file.\n"
+           "\t\tThe -include option may appear multiple times, if more than one\n"
+           "\t\timplicit include is needed.\n");
 
     if (verbose) {
         const struct symtab *psymp = predefs;

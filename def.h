@@ -65,7 +65,7 @@ in this Software without prior written authorization from The Open Group.
 #define ENDIF           4
 #define DEFINE          5
 #define UNDEF           6
-#define INCLUDE         7
+#define INCLUDE         7   /* system include, using <...> */
 #define LINE            8
 #define PRAGMA          9
 #define ERROR           10
@@ -74,13 +74,13 @@ in this Software without prior written authorization from The Open Group.
 #define ELIF            13
 #define EJECT           14
 #define WARNING         15
-#define INCLUDENEXT     16
+#define INCLUDENEXT     16  /* system include_next, using <...> */
 #define IFFALSE         17  /* pseudo value --- never matched */
 #define ELIFFALSE       18  /* pseudo value --- never matched */
-#define INCLUDEDOT      19  /* pseudo value --- never matched (non-system #include) */
+#define INCLUDEUSR      19  /* pseudo value --- never matched (non-system #include, using "...") */
 #define IFGUESSFALSE    20  /* pseudo value --- never matched */
 #define ELIFGUESSFALSE  21  /* pseudo value --- never matched */
-#define INCLUDENEXTDOT  22  /* pseudo value --- never matched (non-system #include_next */
+#define INCLUDENEXTUSR  22  /* pseudo value --- never matched (non-system #include_next, using "..." */
 
 #ifdef DEBUG
   extern int  _debugmask;
@@ -148,6 +148,7 @@ struct filepointer {
 char*  copy(const char *str);
 int    match(const char *str, const char **list);
 char*  getnextline(struct filepointer *fp);
+char*  base_name (const char *file);
 struct symtab** slookup(const char *symbol, struct inclist *file);
 struct symtab** isdefined(const char *symbol, struct inclist *file,
                           struct inclist **srcfile);
@@ -171,7 +172,7 @@ int    find_includes(struct filepointer *filep,
                      int recursion, boolean failOK);
 
 char*  targetname(const char *base);
-void   recursive_pr_include(struct inclist *head, const char *file, const char *base);
+void   recursive_pr_include(struct inclist *head, const char *file);
 
 int    cppsetup(const char *filename,
                 const char *line,

@@ -33,6 +33,7 @@ extern struct inclist   inclist[ MAXFILES ],
             maininclist;
 extern char *includedirs[ ];
 extern const char **includedirsnext;
+extern boolean exclude_sysincludes;
 extern boolean show_where_not;
 
 static int deftype (char *line, struct filepointer *filep,
@@ -72,7 +73,7 @@ gobble(struct filepointer *filep, struct inclist *file,
         case DEFINE:
         case UNDEF:
         case INCLUDE:
-        case INCLUDEDOT:
+        case INCLUDEUSR:
         case PRAGMA:
         case ERROR:
         case IDENT:
@@ -80,7 +81,7 @@ gobble(struct filepointer *filep, struct inclist *file,
         case EJECT:
         case WARNING:
         case INCLUDENEXT:
-        case INCLUDENEXTDOT:
+        case INCLUDENEXTUSR:
             break;
         case ELIF:
         case ELIFFALSE:
@@ -224,14 +225,15 @@ deftype (char *line, struct filepointer *filep,
             return(-2);
         if (*p++ == '"') {
             if (ret == INCLUDE)
-                ret = INCLUDEDOT;
+                ret = INCLUDEUSR;
             else
-                ret = INCLUDENEXTDOT;
+                ret = INCLUDENEXTUSR;
             while (*p && *p != '"')
                 *line++ = *p++;
-        } else
+        } else {
             while (*p && *p != '>')
                 *line++ = *p++;
+        }
         *line = '\0';
         break;
     case DEFINE:
@@ -782,9 +784,12 @@ find_includes(struct filepointer *filep, struct inclist *file,
             undefine(line, file_red);
             break;
         case INCLUDE:
-        case INCLUDEDOT:
         case INCLUDENEXT:
-        case INCLUDENEXTDOT:
+            if (exclude_sysincludes)
+                break;
+            /* else drop-through */
+        case INCLUDEUSR:
+        case INCLUDENEXTUSR:
             inclistp = inclistnext;
             includedirsp = includedirsnext;
             debug(2,("%s, reading %s, includes %s\n",

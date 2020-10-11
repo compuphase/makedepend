@@ -5,8 +5,8 @@ NAME
 
 SYNOPSIS
        makedepend  [  -Dname=def  ] [ -Dname ] [ -Iincludedir ]
-		   [ -a ] [ -b ] [ -c ] [ -fmakefile ] [ -h ]
-                   [ -include file ] [ -m ] [-oobjsuffix ]
+		   [ -a ] [ -b ] [ -c ] [ -e ] [ -fmakefile ]
+                   [ -h ] [ -include file ] [ -m ] [-oobjsuffix ]
                    [ -pobjprefix ] [ -sstring ] [-v ] [ -wwidth ]
                    [ -- otheroptions -- ] sourcefile ...
 
@@ -106,6 +106,12 @@ OPTIONS
        -c   Includes the C/C++ source file in the list of  depen-
             dencies.  By default, makedepend only lists all files
             included by the source file on the dependency line.
+
+       -e   Excludes system includes from the list  of  dependen-
+            cies.  System includes are  files  that  are  between
+            angle brackets (after the #include).  These are  less
+            relevant to list as dependecies; the  system  include
+            files can be considered stable.
 
        -fmakefile
             Filename.  This allows you to  specify  an  alternate
