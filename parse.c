@@ -515,7 +515,7 @@ static char args[S_ARGS_BUFLEN];
     if (!*val) /* define statements without a value will get a value of 1 */
         val = (char*)"1";
 
-    if (args && (strlen(args)>0))
+    if (strlen(args)>0)
         define2(def, args, val, file);
     else
         define2(def, NULL, val, file);

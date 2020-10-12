@@ -20,7 +20,7 @@ DESCRIPTION
        #include directives, and parsing will occur in these files
        as well.
 
-       Every  file  that a sourcefile includes, directly or indi-­
+       Every  file  that a sourcefile includes, directly or indi-
        rectly, is what  makedepend  calls  a  dependency.   These
        dependencies  are then written to a makefile in such a way
        that make(1) will know which object files must  be  recom-

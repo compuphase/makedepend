@@ -14,7 +14,7 @@ $(BIN): $(OBJS)
 	gcc -Wall -s -O3 $(OBJS) -o $@
 
 %.o: %.c
-	gcc -Wall -c -O3 $<
+	gcc -Wall -Wno-format-truncation -c -O3 $<
 
 # DO NOT DELETE
 
