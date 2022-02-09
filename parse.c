@@ -34,6 +34,7 @@ extern struct inclist   inclist[ MAXFILES ],
 extern char *includedirs[ ];
 extern const char **includedirsnext;
 extern boolean exclude_sysincludes;
+extern boolean ignore_missing;
 extern boolean show_where_not;
 
 static int deftype (char *line, struct filepointer *filep,
@@ -113,6 +114,7 @@ deftype (char *line, struct filepointer *filep,
     /*
      * Parse the directive...
      */
+    assert(*line == '#');
     directive=line+1;
     while (*directive == ' ' || *directive == '\t')
         directive++;
@@ -662,8 +664,17 @@ add_include(struct filepointer *filep, struct inclist *file,
      */
     newfile = inc_path(file->i_file, include, type);
     if (newfile == NULL) {
-        if (failOK)
+        if (failOK) {
+            if (!ignore_missing && (!exclude_sysincludes || type == INCLUDEUSR || type == INCLUDENEXTUSR)) {
+                static boolean first_warning = TRUE;
+                if (first_warning) {
+                    fprintf(stderr, "\n");
+                    first_warning = FALSE;
+                }
+                fprintf(stderr, "makedepend: %s(%d): cannot locate \"%s\"\n", file->i_file, filep->f_line, include);
+            }
             return;
+        }
         if (file != file_red)
             warning("%s (reading %s, line %d): ",
                 file_red->i_file, file->i_file, filep->f_line);
@@ -783,13 +794,13 @@ find_includes(struct filepointer *filep, struct inclist *file,
             }
             undefine(line, file_red);
             break;
-        case INCLUDE:
-        case INCLUDENEXT:
+        case INCLUDE:           /* #include <...> */
+        case INCLUDENEXT:       /* #include_next <...> */
             if (exclude_sysincludes)
                 break;
             /* else drop-through */
-        case INCLUDEUSR:
-        case INCLUDENEXTUSR:
+        case INCLUDEUSR:        /* #include "..." */
+        case INCLUDENEXTUSR:    /* #include_next "..." */
             inclistp = inclistnext;
             includedirsp = includedirsnext;
             debug(2,("%s, reading %s, includes %s\n",

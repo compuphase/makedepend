@@ -1,5 +1,5 @@
 
-/* $Xorg: main.c,v 1.0.5 2001/02/09 02:03:16 xorgcvs Exp $ */
+/* $Xorg: main.c,v 1.0.8 2001/02/09 02:03:16 xorgcvs Exp $ */
 
 /*
 
@@ -83,7 +83,7 @@ int _debugmask;
 
 const char *ProgramName;
 
-const char * const directives[] = {
+const char * const directives[] = { /* the order of these strings must match with the constants in def.h */
     "if",
     "ifdef",
     "ifndef",
@@ -137,12 +137,11 @@ int width = 78;
 static boolean make_backup = TRUE;
 static boolean include_cfile = FALSE;
 boolean exclude_sysincludes = FALSE;
+boolean ignore_missing = FALSE;     /* do not warn on include files that cannot be found */
 boolean printed = FALSE;
 boolean verbose = FALSE;
+boolean warn_multiple = FALSE;      /* warn on multiple includes of same file */
 boolean show_where_not = FALSE;
-
-/* Warn on multiple includes of same file */
-boolean warn_multiple = FALSE;
 
 static void setfile_vars (const char *name, struct inclist *file);
 static void setfile_cmdinc (struct filepointer *filep, long count, char **list);
@@ -340,20 +339,6 @@ int main (int argc, char *argv[])
                     goto badopt;
                 exclude_sysincludes = TRUE;
                 break;
-            case 'w':
-                if (endmarker)
-                    break;
-                if (argv[0][2] == '\0') {
-                    /* syntax -w 99 */
-                    argv++;
-                    argc--;
-                    if (argv[0])
-                        width = atoi (argv[0]);
-                } else {
-                    /* syntax -w99 */
-                    width = atoi (argv[0] + 2);
-                }
-                break;
             case 'o':
                 if (endmarker)
                     break;
@@ -380,15 +365,6 @@ int main (int argc, char *argv[])
                     objprefix = argv[0] + 2;
                 }
                 break;
-            case 'v':
-                if (endmarker)
-                    break;
-                verbose = TRUE;
-#ifdef DEBUG
-                if (argv[0][2])
-                    _debugmask = atoi (argv[0] + 2);
-#endif
-                break;
             case 's':
                 if (endmarker)
                     break;
@@ -399,6 +375,29 @@ int main (int argc, char *argv[])
                 }
                 if (*startat != '#')
                     fatalerr ("-s flag's value should start %s\n", "with '#'.");
+                break;
+            case 'v':
+                if (endmarker)
+                    break;
+                verbose = TRUE;
+#ifdef DEBUG
+                if (argv[0][2])
+                    _debugmask = atoi (argv[0] + 2);
+#endif
+                break;
+            case 'w':
+                if (endmarker)
+                    break;
+                if (argv[0][2] == '\0') {
+                    /* syntax -w 99 */
+                    argv++;
+                    argc--;
+                    if (argv[0])
+                        width = atoi (argv[0]);
+                } else {
+                    /* syntax -w99 */
+                    width = atoi (argv[0] + 2);
+                }
                 break;
             case 'f':
                 if (endmarker)
@@ -426,6 +425,8 @@ int main (int argc, char *argv[])
                 break;
 
             case 'i':
+                if (endmarker)
+                    break;
                 if (strcmp (&argv[0][1], "include") == 0) {
                     char *buf;
                     if (argc < 2)
@@ -443,8 +444,12 @@ int main (int argc, char *argv[])
                     cmdinc_list[2 * cmdinc_count + 1] = buf;
                     cmdinc_count++;
                     break;
+                } else {
+                    if (argv[0][2])
+                        goto badopt;
+                    ignore_missing = TRUE;
                 }
-                /* intentional fall through */
+                break;
             default:
                 if (endmarker)
                     break;
@@ -1026,7 +1031,7 @@ void warning1 (const char *msg, ...)
 
 void showusage (void)
 {
-    printf("makedepend 1.0.7\n\n");
+    printf("makedepend 1.0.8\n\n");
     printf("Usage: makedepend [options] <file1.c> [file2.c] [...]\n\n");
     printf("-D<name>\tAdd a definition for <name> (with value 1).\n");
     printf("-D<name>=<def>\tAdd a definition for <name>, with value <def>.\n");
@@ -1043,6 +1048,7 @@ void showusage (void)
            "\t\t\"Makefile\"). Setting -f- sends the output to standard output.\n");
     printf("-h\t\tShow usage information (this text).");
     printf(verbose ? "\n" : " Use -h -v for details.\n");
+    printf("-i\t\tDo not warn about include files that cannot be found.\n");
     printf("-m\t\tWarn about multiple inclusions.\n");
     printf("-o<suffix>\tObject file extension. The default is \".o\".\n");
     printf("-p<prefix>\tObject file prefix, typically used to set a directory. If the\n"

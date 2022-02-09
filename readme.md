@@ -57,6 +57,9 @@ remove or change that comment, because if makedepend does not find that line,
 it appends its dependency list to the makefile again, rather than replacing the
 existing (and possibly outdated) dependency list.
 
+makedepend warns about an include file that it cannot locate, because it will
+skip this include file in the dependency list for the target.
+
 ### Keep dependencies separate from build rules
 
 In an environment where you work in a team, and especially when the makefile is
@@ -251,6 +254,14 @@ in `$^`.
   enabled (see <code>-v</code>), the list of predefined variables is listed too.
 </dd>
 
+<dt> <code>-i</code> </dt>
+<dd>
+  Ignore include files that cannot be located. That is, do NOT warn about any
+  include files that cannot be found. Note that include files that are not
+  found, are never added as a dependency to the target. This option silences
+  the warning about missing files.
+</dd>
+
 <dt> <code>-m</code> </dt>
 <dd>
   Enables warnings for multiple inclusion (of the same file). This option is
@@ -375,4 +386,6 @@ been modified to bring new features and improvements:
 * Read the `INCLUDE` environment variable on Microsoft Windows (instead of the
   `C_INCLUDE_PATH` variable).
 * Added the prededined `_makedepend` and `__cplusplus` variables.
-
+* Add a warning for the case that an include file cannot be located (because
+  that file will then not be added as a dependency). The `-i` option silences
+  the warning.

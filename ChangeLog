@@ -1,3 +1,13 @@
+github commit
+Author: Thiadmer Riemersma
+Date:   Wednesday 9 February 2022
+
+    makedepend 1.0.8
+
+    Added a warning for include files that cannot be located (as these are
+    skipped in the dependency list). Added the -i option to silence the warning.
+
+
 github commit 2852bd0500f1eec159ed00a69ef3df803bf087c4
 Author: Thiadmer Riemersma
 Date:   Sunday 11 October 2020
