@@ -58,7 +58,8 @@ it appends its dependency list to the makefile again, rather than replacing the
 existing (and possibly outdated) dependency list.
 
 makedepend warns about an include file that it cannot locate, because it will
-skip this include file in the dependency list for the target.
+skip this include file in the dependency list for the target. See also the `-i`
+option.
 
 ### Keep dependencies separate from build rules
 
