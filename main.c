@@ -175,7 +175,7 @@ static struct sigaction sig_act;
 
 int main (int argc, char *argv[])
 {
-    char **fp = filelist;
+    char **fltail = filelist;
     const char **incp = includedirs;
     char *p;
     struct inclist *ip;
@@ -250,15 +250,15 @@ int main (int argc, char *argv[])
             continue;
         }
         if (**argv != '-') {
-            char **p;
+            char **pp;
             /* treat +thing as an option for C++ */
             if (endmarker && **argv == '+')
                 continue;
             /* check for a file appearing twice on the command line */
-            for (p = filelist; p != fp && (strcmp (*p, argv[0]) != 0); p++)
+            for (pp = filelist; pp != fltail && (strcmp (*pp, argv[0]) != 0); pp++)
                 {}
-            if (p == fp)    /* reached the end of the list, so this is a new file */
-                *fp++ = argv[0];
+            if (pp == fltail)   /* reached the end of the list, so this is a new file */
+                *fltail++ = argv[0];
             continue;
         }
         switch (argv[0][1]) {
@@ -298,10 +298,16 @@ int main (int argc, char *argv[])
             case 'U':
                 /* Undef's override all -D's so save them up */
                 numundefs++;
-                if (numundefs == 1)
+                if (numundefs == 1) {
                     undeflist = (char**)malloc (sizeof (char *));
-                else
+                } else {
+                    char **old = undeflist;
                     undeflist = (char**)realloc (undeflist, numundefs * sizeof (char *));
+                    if (!undeflist) {
+                        free (old);
+                        memoryerr ();
+                    }
+                }
                 i = 2;
                 if (argv[0][i] == '\0') {
                     argv++;
@@ -586,11 +592,11 @@ int main (int argc, char *argv[])
     /*
      * now peruse through the list of files.
      */
-    for (fp = filelist; *fp; fp++) {
-        filecontent = getfile (*fp);
+    for (fltail = filelist; *fltail; fltail++) {
+        filecontent = getfile (*fltail);
         setfile_cmdinc (filecontent, cmdinc_count, cmdinc_list);
-        ip = newinclude (*fp, (char *) NULL);
-        setfile_vars (*fp, ip);
+        ip = newinclude (*fltail, (char *) NULL);
+        setfile_vars (*fltail, ip);
         find_includes (filecontent, ip, ip, 0, TRUE);
         freefile (filecontent);
         if (include_cfile)

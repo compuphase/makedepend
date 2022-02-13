@@ -215,7 +215,6 @@ included_by(struct inclist *ip, struct inclist *newfile)
         register int i;
         for (i=0; i<ip->i_listlen; i++)
             if (ip->i_list[ i ] == newfile) {
-                i = strlen(newfile->i_file);
                 if (!(ip->i_flags & INCLUDED_SYM)) {
                     /* only warn if ip has no #include SYMBOL lines */
                     if (warn_multiple) {

@@ -257,9 +257,9 @@ in `$^`.
 
 <dt> <code>-i</code> </dt>
 <dd>
-  Ignore include files that cannot be located. That is, do NOT warn about any
+  Ignore include files that cannot be located. That is, do <b>not</b> warn about any
   include files that cannot be found. Note that include files that are not
-  found, are never added as a dependency to the target. This option silences
+  found, are <i>never</i> added as a dependency to the target. This option silences
   the warning about missing files.
 </dd>
 

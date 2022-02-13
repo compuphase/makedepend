@@ -49,10 +49,10 @@ gobble(struct filepointer *filep, struct inclist *file,
        struct inclist *file_red)
 {
     char    *line;
-    int type;
 
     while ((line = getnextline(filep))) {
-        switch(type = deftype(line, filep, file_red, file, FALSE)) {
+        int type = deftype(line, filep, file_red, file, FALSE);
+        switch(type) {
         case IF:
         case IFFALSE:
         case IFGUESSFALSE:
@@ -67,7 +67,7 @@ gobble(struct filepointer *filep, struct inclist *file,
             break;
         case ELSE:
         case ENDIF:
-            debug(0,("%s, line %d: #%s\n",
+            debug(0,("%s, line %ld: #%s\n",
                 file->i_file, filep->f_line,
                 directives[type]));
             return(type);
@@ -140,7 +140,7 @@ deftype (char *line, struct filepointer *filep,
         /*
          * parse an expression.
          */
-        debug(0,("%s, line %d: #elif %s ",
+        debug(0,("%s, line %ld: #elif %s ",
            file->i_file, filep->f_line, p));
         ret = zero_value(file->i_file, p, filep, file_red);
         if (ret != IF)
@@ -177,12 +177,12 @@ deftype (char *line, struct filepointer *filep,
          * parse an expression.
          */
         ret = zero_value(file->i_file, p, filep, file_red);
-        debug(0,("%s, line %d: %s #if %s\n",
+        debug(0,("%s, line %ld: %s #if %s\n",
              file->i_file, filep->f_line, ret?"false":"true", p));
         break;
     case IFDEF:
     case IFNDEF:
-        debug(0,("%s, line %d: #%s %s\n",
+        debug(0,("%s, line %ld: #%s %s\n",
             file->i_file, filep->f_line, directives[ret], p));
     case UNDEF:
         /*
@@ -194,7 +194,7 @@ deftype (char *line, struct filepointer *filep,
         break;
     case INCLUDE:
     case INCLUDENEXT:
-        debug(2,("%s, line %d: #include%s %s\n",
+        debug(2,("%s, line %ld: #include%s %s\n",
             file->i_file, filep->f_line,
             (ret == INCLUDE) ? "" : "_next", p));
 
@@ -253,7 +253,7 @@ deftype (char *line, struct filepointer *filep,
     case SCCS:
     case EJECT:
     case WARNING:
-        debug(0,("%s, line %d: #%s\n",
+        debug(0,("%s, line %ld: #%s\n",
             file->i_file, filep->f_line, directives[ret]));
         /*
          * nothing to do.
@@ -266,9 +266,7 @@ deftype (char *line, struct filepointer *filep,
 struct symtab **
 fdefined(const char *symbol, struct inclist *file, struct inclist **srcfile)
 {
-    struct inclist  **ip;
     struct symtab   **val;
-    int i;
     static int  recurse_lvl = 0;
 
     if (file->i_flags & DEFCHECKED)
@@ -280,6 +278,8 @@ fdefined(const char *symbol, struct inclist *file, struct inclist **srcfile)
              symbol, file->i_file, (*val)->s_value));
     if (val == NULL && file->i_list)
     {
+        struct inclist  **ip;
+        int i;
         for (ip = file->i_list, i=0; i < file->i_listlen; i++, ip++)
             if (file->i_merged[i]==FALSE) {
                 val = fdefined(symbol, *ip, srcfile);
@@ -287,7 +287,8 @@ fdefined(const char *symbol, struct inclist *file, struct inclist **srcfile)
                 if (val!=NULL) break;
             }
     }
-    else if (val != NULL && srcfile != NULL) *srcfile = file;
+    else if (val != NULL && srcfile != NULL)
+		*srcfile = file;
     recurse_lvl--;
     file->i_flags &= ~DEFCHECKED;
 
@@ -432,8 +433,6 @@ static char args[S_ARGS_BUFLEN];
 
     char *val;
     char *p_args = args;
-    int fix_args = 0, var_args = 0, loop = 1;
-    char *p_tmp;
 
     args[0] = '\0';
 
@@ -444,6 +443,8 @@ static char args[S_ARGS_BUFLEN];
 
     if (*val == '(') /* is this macro definition with parameters? */
     {
+		int fix_args = 0, var_args = 0;
+		int loop = 1;
         *val++ = '\0';
 
         do /* parse the parameter list */
@@ -454,57 +455,57 @@ static char args[S_ARGS_BUFLEN];
             /* extract next parameter name */
             if (*val == '.')
             { /* it should be the var-args parameter: "..." */
-            var_args++;
-            p_tmp = p_args;
-            while (*val == '.')
-            {
-                *p_args++ = *val++;
-                if (p_args >= &args[S_ARGS_BUFLEN-1])
-                fatalerr("args buffer full failure in insert_defn()\n");
-            }
-            *p_args = '\0';
-            if (strcmp(p_tmp,"...")!=0)
-            {
-                fprintf(stderr, "unrecognized qualifier, should be \"...\" for-args\n");
-            }
+                char *p_tmp = p_args;
+				var_args++;
+				while (*val == '.')
+				{
+					*p_args++ = *val++;
+					if (p_args >= &args[S_ARGS_BUFLEN-1])
+					fatalerr("args buffer full failure in insert_defn()\n");
+				}
+				*p_args = '\0';
+				if (strcmp(p_tmp,"...")!=0)
+				{
+					fprintf(stderr, "unrecognized qualifier, should be \"...\" for-args\n");
+				}
             }
             else
             { /* regular parameter name */
-            fix_args++;
-            while (isalnum(*val) || *val == '_')
-            {
-                *p_args++ = *val++;
-                if (p_args >= &args[S_ARGS_BUFLEN-1])
-                fatalerr("args buffer full failure in insert_defn()\n");
-            }
+				fix_args++;
+				while (isalnum(*val) || *val == '_')
+				{
+					*p_args++ = *val++;
+					if (p_args >= &args[S_ARGS_BUFLEN-1])
+					fatalerr("args buffer full failure in insert_defn()\n");
+				}
             }
             while (*val == ' ' || *val == '\t')
-            val++;
+				val++;
 
             if (*val == ',')
             {
-            if (var_args)
-            {
-                fprintf(stderr, "there are more arguments after the first var-args qualifier\n");
-            }
+				if (var_args)
+				{
+					fprintf(stderr, "there are more arguments after the first var-args qualifier\n");
+				}
 
-            *p_args++ = ','; /* we are using the , as a reserved char */
-            if (p_args >= &args[S_ARGS_BUFLEN-1])
-                fatalerr("args buffer full failure in insert_defn()\n");
-            val++;
+				*p_args++ = ','; /* we are using the , as a reserved char */
+				if (p_args >= &args[S_ARGS_BUFLEN-1])
+					fatalerr("args buffer full failure in insert_defn()\n");
+				val++;
             }
             else
             if (*val == ')')
             {
-            *p_args = '\0';
-            val++;
-            loop=0;
+				*p_args = '\0';
+				val++;
+				loop=0;
             }
             else
             if (*val != '.')
             {
-            fprintf(stderr, "trailing ) on macro arguments missing\n");
-            loop=0;
+				fprintf(stderr, "trailing ) on macro arguments missing\n");
+				loop=0;
             }
         } while (loop);
     }
@@ -657,7 +658,6 @@ add_include(struct filepointer *filep, struct inclist *file,
         boolean failOK)
 {
     register struct inclist *newfile;
-    register struct filepointer *content;
 
     /*
      * First decide what the pathname of this include file really is.
@@ -671,15 +671,15 @@ add_include(struct filepointer *filep, struct inclist *file,
                     fprintf(stderr, "\n");
                     first_warning = FALSE;
                 }
-                fprintf(stderr, "makedepend: %s(%d): cannot locate \"%s\"\n", file->i_file, filep->f_line, include);
+                fprintf(stderr, "makedepend: %s(%ld): cannot locate \"%s\"\n", file->i_file, filep->f_line, include);
             }
             return;
         }
         if (file != file_red)
-            warning("%s (reading %s, line %d): ",
+            warning("%s (reading %s, line %ld): ",
                 file_red->i_file, file->i_file, filep->f_line);
         else
-            warning("%s, line %d: ", file->i_file, filep->f_line);
+            warning("%s, line %ld: ", file->i_file, filep->f_line);
         warning1("cannot find include file \"%s\"\n", include);
         show_where_not = TRUE;
         newfile = inc_path(file->i_file, include, type);
@@ -689,6 +689,7 @@ add_include(struct filepointer *filep, struct inclist *file,
     if (newfile) {
         included_by(file, newfile);
         if (!(newfile->i_flags & SEARCHED)) {
+            register struct filepointer *content;
             newfile->i_flags |= SEARCHED;
             content = getfile(newfile->i_file);
             find_includes(content, newfile, file_red, 0, failOK);
@@ -745,7 +746,7 @@ find_includes(struct filepointer *filep, struct inclist *file,
 
                 if (isdef) {
                     debug(1,(type == IFNDEF ?
-                        "line %d: %s !def'd in %s via %s%s\n" : "",
+                        "line %ld: %s !def'd in %s via %s%s\n" : "",
                         filep->f_line, line,
                         file->i_file, file_red->i_file, ": doit"));
                     type = find_includes(filep, file,
@@ -757,7 +758,7 @@ find_includes(struct filepointer *filep, struct inclist *file,
                 }
                 else {
                     debug(1,(type == IFDEF ?
-                        "line %d: %s !def'd in %s via %s%s\n" : "",
+                        "line %ld: %s !def'd in %s via %s%s\n" : "",
                         filep->f_line, line,
                         file->i_file, file_red->i_file, ": gobble"));
                     type = gobble(filep, file, file_red);

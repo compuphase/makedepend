@@ -110,7 +110,7 @@ struct symtab **lookup(symbol)
 pperror(tag, x0,x1,x2,x3,x4)
     int tag,x0,x1,x2,x3,x4;
 {
-    warning("\"%s\", line %d: ", currentinc->i_file, currentfile->f_line);
+    warning("\"%s\", line %ld: ", currentinc->i_file, currentfile->f_line);
     warning(x0,x1,x2,x3,x4);
 }
 
@@ -135,13 +135,14 @@ static const char *
 my_if_errors (IfParser *ip, const char *cp, const char *expecting)
 {
     struct _parse_data *pd = (struct _parse_data *) ip->data;
-    int lineno = pd->filep->f_line;
+    long lineno = pd->filep->f_line;
     const char *filename = pd->filename;
     char prefix[300];
     int prefixlen;
     int i;
 
-    snprintf (prefix, sizeof(prefix), "\"%s\":%d", filename, lineno);
+    snprintf (prefix, sizeof(prefix), "\"%s\":%ld", filename, lineno);
+    prefix[sizeof(prefix)-1] = '\0';    /* force zero-termination (snprintf() may not zero-terminate a string) */
     prefixlen = strlen(prefix);
     fprintf (stderr, "%s:  %s", prefix, pd->line);
     i = cp - pd->line;

@@ -267,6 +267,12 @@ When verbose output is enabled (see
 .B \-v
 ), the list of predefined variables is listed too.
 .TP 5
+.B \-i
+Ignore include files that cannot be located. That is, do not warn about any
+include files that cannot be found. Note that include files that are not found, 
+are never added as a dependency to the target. This option silences the warning
+about missing files.
+.TP 5
 .B \-include \fIfile\fP
 Process file as input, and include all the resulting output
 before processing the regular input file. This has the same

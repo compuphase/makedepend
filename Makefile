@@ -5,7 +5,7 @@ BIN=makedepend
 all: $(BIN)
 
 clean:
-	rm -f $(BIN).exe *.o
+	rm -f $(BIN) *.o
 
 depend:
 	$(BIN) $(SRCS)

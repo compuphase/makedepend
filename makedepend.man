@@ -124,6 +124,12 @@ OPTIONS
             verbose output is enabled (see -v),  the list of pre-
             defined variables is listed too.
 
+       -i   Ignore include files that cannot be located. That is,
+            do not warn about any include files  that  cannot  be
+            found.  Note that include files that  are  not found,
+            are never added as a dependency to the  target.  This
+            option silences the warning about missing files.
+
        -include file
             Process file as input, and include all the  resulting
             output before processing the regular input file. This
