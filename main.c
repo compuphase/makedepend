@@ -664,19 +664,27 @@ struct filepointer *getfile (const char *file)
     return (content);
 }
 
+static
+const char *skip_path(const char *filename)
+{
+    const char *pathsep;
+    assert(filename != NULL);
+    pathsep = strrchr(filename, '/');
+    if (pathsep)
+        filename = pathsep + 1;   /* skip / */
+#ifdef WIN32
+    pathsep = strrchr(filename, '\\');
+    if (pathsep)
+        filename = pathsep + 1;   /* skip \\ */
+#endif
+    return filename;
+}
+
 void setfile_vars (const char *name, struct inclist *file)
 {
-    const char *ext, *pathsep;
+    const char *ext;
 
-    pathsep = strrchr(name, '/');
-    if (pathsep)
-        name = pathsep + 1;   /* skip / */
-#ifdef WIN32
-    pathsep = strrchr(name, '\\');
-    if (pathsep)
-        name = pathsep + 1;   /* skip \\ */
-#endif
-
+    name = skip_path(name);
     ext = strrchr(name, '.');
     if (ext) {
         if (strcasecmp(ext, ".cpp") == 0 || strcasecmp(ext, ".cxx") == 0
@@ -1003,36 +1011,70 @@ void redirect (const char *line, const char *makefile, const char *filelist[])
 #endif /* USGISH */
 }
 
-void memoryerr (void)
+void memoryerr(void)
 {
-    fatalerr ("insufficient memory (or memory allocation failure)\n");
+    fatalerr("insufficient memory (or memory allocation failure)\n");
 }
 
-void fatalerr (const char *msg, ...)
+void fatalerr(const char *msg, ...)
 {
     va_list args;
-    fprintf (stderr, "%s: error:  ", ProgramName);
-    va_start (args, msg);
-    vfprintf (stderr, msg, args);
-    va_end (args);
-    exit (1);
+    fprintf(stderr, "\n%s - error: ", skip_path(ProgramName));
+    va_start(args, msg);
+    vfprintf(stderr, msg, args);
+    va_end(args);
+    exit(1);
 }
 
-void warning (const char *msg, ...)
+static 
+void warning_header(void)
 {
-    va_list args;
-    fprintf (stderr, "%s: warning:  ", ProgramName);
-    va_start (args, msg);
-    vfprintf (stderr, msg, args);
-    va_end (args);
+    static boolean first_warning = TRUE;
+    if (first_warning) {
+        fprintf(stderr, "\n");
+        first_warning = FALSE;
+    }
+
+    assert(ProgramName != NULL);
+    fprintf(stderr, "%s - warning: ", skip_path(ProgramName));
 }
 
-void warning1 (const char *msg, ...)
+void warning(const char *msg, ...)
 {
     va_list args;
-    va_start (args, msg);
-    vfprintf (stderr, msg, args);
-    va_end (args);
+
+    assert(msg != NULL);
+
+    warning_header();
+
+    va_start(args, msg);
+    vfprintf(stderr, msg, args);
+    va_end(args);
+}
+
+void warning_std(struct inclist *file_red, struct inclist *file, long linenr, const char *msg, ...)
+{
+    va_list args;
+
+    assert(file != NULL);
+    assert(msg != NULL);
+
+    warning_header();
+    if (file_red != NULL && file_red != file && strcmp(file_red->i_file, file->i_file) != 0)
+        fprintf(stderr, "[%s] ", file_red->i_file);
+    fprintf(stderr, "%s(%ld): ", file->i_file, linenr);
+
+    va_start(args, msg);
+    vfprintf(stderr, msg, args);
+    va_end(args);
+}
+
+void warning_cont(const char *msg, ...)
+{
+    va_list args;
+    va_start(args, msg);
+    vfprintf(stderr, msg, args);
+    va_end(args);
 }
 
 void showusage (void)

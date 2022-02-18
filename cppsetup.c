@@ -111,7 +111,7 @@ pperror(tag, x0,x1,x2,x3,x4)
     int tag,x0,x1,x2,x3,x4;
 {
     warning("\"%s\", line %ld: ", currentinc->i_file, currentfile->f_line);
-    warning(x0,x1,x2,x3,x4);
+    warning_cont(" [%d %d %d %d]\n",x0,x1,x2,x3,x4);
 }
 
 

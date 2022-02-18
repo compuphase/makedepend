@@ -89,11 +89,7 @@ gobble(struct filepointer *filep, struct inclist *file,
         case ELIFGUESSFALSE:
             return(type);
         case -1:
-            warning("%s", file_red->i_file);
-            if (file_red != file)
-                warning1(" (reading %s)", file->i_file);
-            warning1(", line %ld: unknown directive == \"%s\"\n",
-                filep->f_line, line);
+            warning_std (file_red, file, filep->f_line, "unknown directive \"%s\"\n", line);
             break;
         }
     }
@@ -664,23 +660,10 @@ add_include(struct filepointer *filep, struct inclist *file,
      */
     newfile = inc_path(file->i_file, include, type);
     if (newfile == NULL) {
-        if (failOK) {
-            if (!ignore_missing && (!exclude_sysincludes || type == INCLUDEUSR || type == INCLUDENEXTUSR)) {
-                static boolean first_warning = TRUE;
-                if (first_warning) {
-                    fprintf(stderr, "\n");
-                    first_warning = FALSE;
-                }
-                fprintf(stderr, "makedepend: %s(%ld): cannot locate \"%s\"\n", file->i_file, filep->f_line, include);
-            }
+        if ((!ignore_missing || !failOK) && (!exclude_sysincludes || type == INCLUDEUSR || type == INCLUDENEXTUSR))
+            warning_std(file_red, file, filep->f_line, "cannot locate \"%s\"\n", include);
+        if (failOK)
             return;
-        }
-        if (file != file_red)
-            warning("%s (reading %s, line %ld): ",
-                file_red->i_file, file->i_file, filep->f_line);
-        else
-            warning("%s, line %ld: ", file->i_file, filep->f_line);
-        warning1("cannot find include file \"%s\"\n", include);
         show_where_not = TRUE;
         newfile = inc_path(file->i_file, include, type);
         show_where_not = FALSE;
@@ -786,11 +769,7 @@ find_includes(struct filepointer *filep, struct inclist *file,
             break;
         case UNDEF:
             if (!*line) {
-                warning("%s", file_red->i_file);
-                if (file_red != file)
-                    warning1(" (reading %s)", file->i_file);
-                warning1(", line %ld: incomplete undef == \"%s\"\n",
-                filep->f_line, line);
+                warning_std(file_red, file, filep->f_line, "incomplete undef \"%s\"\n", line);
                 break;
             }
             undefine(line, file_red);
@@ -812,11 +791,7 @@ find_includes(struct filepointer *filep, struct inclist *file,
             break;
         case ERROR:
         case WARNING:
-            warning("%s", file_red->i_file);
-            if (file_red != file)
-                warning1(" (reading %s)", file->i_file);
-            warning1(", line %ld: %s\n",
-                 filep->f_line, line);
+            warning_std(file_red, file, filep->f_line, "directive \"%s\"\n", line);
             break;
 
         case PRAGMA:
@@ -825,18 +800,10 @@ find_includes(struct filepointer *filep, struct inclist *file,
         case EJECT:
             break;
         case -1:
-            warning("%s", file_red->i_file);
-            if (file_red != file)
-                warning1(" (reading %s)", file->i_file);
-            warning1(", line %ld: unknown directive == \"%s\"\n",
-                 filep->f_line, line);
+            warning_std(file_red, file, filep->f_line, "unknown directive \"%s\"\n", line);
             break;
         case -2:
-            warning("%s", file_red->i_file);
-            if (file_red != file)
-                warning1(" (reading %s)", file->i_file);
-            warning1(", line %ld: incomplete include == \"%s\"\n",
-                 filep->f_line, line);
+            warning_std(file_red, file, filep->f_line, "incomplete include \"%s\"\n", line);
             break;
         }
     }

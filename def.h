@@ -182,7 +182,8 @@ int    cppsetup(const char *filename,
 void   memoryerr(void);
 void   fatalerr(const char*, ...);
 void   warning(const char*, ...);
-void   warning1(const char*, ...);
+void   warning_std(struct inclist *file_red, struct inclist *file, long linenr, const char *msg, ...);
+void   warning_cont(const char*, ...);
 void   showusage(void);
 
 /* defined in main.c */

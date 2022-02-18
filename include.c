@@ -38,8 +38,9 @@ extern struct   inclist inclist[ MAXFILES ],
 extern char *includedirs[ ];
 extern const char **includedirsnext;
 extern char *notdotdot[ ];
-extern boolean show_where_not;
+extern boolean verbose;
 extern boolean warn_multiple;
+extern boolean show_where_not;
 
 static boolean
 isdot(const char *p)
@@ -218,11 +219,12 @@ included_by(struct inclist *ip, struct inclist *newfile)
                 if (!(ip->i_flags & INCLUDED_SYM)) {
                     /* only warn if ip has no #include SYMBOL lines */
                     if (warn_multiple) {
-                    warning("%s includes %s more than once!\n",
-                        ip->i_file, newfile->i_file);
-                    warning1("Already have\n");
-                    for (i=0; i<ip->i_listlen; i++)
-                        warning1("\t%s\n", ip->i_list[i]->i_file);
+                        warning("%s includes %s more than once\n", ip->i_file, newfile->i_file);
+                        if (verbose) {
+                            warning_cont("Already have:\n");
+                            for (i=0; i<ip->i_listlen; i++)
+                                warning_cont("\t%s\n", ip->i_list[i]->i_file);
+                        }
                     }
                 }
                 return;
@@ -285,7 +287,7 @@ inc_path(const char *file, char *include, int type)
             if (stat(include, &st) == 0 && !S_ISDIR(st.st_mode))
                 return newinclude(include, include);
             if (show_where_not)
-                warning1("\tnot in %s\n", include);
+                warning_cont("\tnot in %s\n", include);
         }
 
         /*
@@ -311,7 +313,7 @@ inc_path(const char *file, char *include, int type)
             if (stat(path, &st) == 0 && !S_ISDIR(st.st_mode))
                 return newinclude(path, include);
             if (show_where_not)
-                warning1("\tnot in %s\n", path);
+                warning_cont("\tnot in %s\n", path);
         }
     }
 
@@ -334,7 +336,7 @@ inc_path(const char *file, char *include, int type)
             return newinclude(path, include);
         }
         if (show_where_not)
-            warning1("\tnot in %s\n", path);
+            warning_cont("\tnot in %s\n", path);
     }
 
     return NULL;
