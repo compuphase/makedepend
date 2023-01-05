@@ -187,6 +187,7 @@ int main (int argc, char *argv[])
     int numundefs = 0, i;
     boolean accumulate = FALSE;
     boolean systeminclude = TRUE;
+    boolean sort_targets = FALSE;
     boolean showhelp = FALSE;
 
     memset (filelist, 0, sizeof (filelist));
@@ -374,13 +375,17 @@ int main (int argc, char *argv[])
             case 's':
                 if (endmarker)
                     break;
-                startat = argv[0] + 2;
-                if (*startat == '\0') {
-                    startat = *(++argv);
-                    argc--;
+                if (strcmp(argv[0] + 1, "sort") == 0) {
+                    sort_targets = TRUE;
+                } else {
+                    startat = argv[0] + 2;
+                    if (*startat == '\0') {
+                        startat = *(++argv);
+                        argc--;
+                    }
+                    if (*startat != '#')
+                        fatalerr ("-s flag's value should start %s\n", "with '#'.");
                 }
-                if (*startat != '#')
-                    fatalerr ("-s flag's value should start %s\n", "with '#'.");
                 break;
             case 'v':
                 if (endmarker)
@@ -588,6 +593,18 @@ int main (int argc, char *argv[])
     sigaction (SIGSYS, &sig_act, (struct sigaction *) 0);
 #endif
 #endif /* USGISH */
+
+    /* sort the file list, to make look-up easier */
+    if (sort_targets && filelist[0] && filelist[1]) {
+        int i;
+        for (i = 1; filelist[i]; i++) {
+            char *key = filelist[i];
+            int j;
+            for (j = i; j > 0 && strcmp(filelist[j-1], key) > 0; j--)
+                filelist[j] = filelist[j-1];
+            filelist[j] = key;
+        }
+    }
 
     /*
      * now peruse through the list of files.
@@ -1105,6 +1122,7 @@ void showusage (void)
            "\t\tthat follows the \"-\".\n");
     printf("-s<delimitor>\tDelimiter string (or \"separator\") in the makefile, below which\n"
            "\t\tgenerated dependencies are written.\n");
+    printf("-sort\t\tSort the targets alphapetically.\n");
     printf("-v\t\tVerbose output.\n");
     printf("-w<width>\tMaximum line width of the generated output (default is 78\n"
            "\t\tcharacters).\n");
