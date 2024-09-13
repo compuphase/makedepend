@@ -1,5 +1,5 @@
 
-/* $Xorg: main.c,v 1.0.8 2001/02/09 02:03:16 xorgcvs Exp $ */
+/* $Xorg: main.c,v 1.0.9 2001/02/09 02:03:16 xorgcvs Exp $ */
 
 /*
 
@@ -1043,7 +1043,7 @@ void fatalerr(const char *msg, ...)
     exit(1);
 }
 
-static 
+static
 void warning_header(void)
 {
     static boolean first_warning = TRUE;
@@ -1096,7 +1096,7 @@ void warning_cont(const char *msg, ...)
 
 void showusage (void)
 {
-    printf("makedepend 1.0.8\n\n");
+    printf("makedepend 1.0.9\n\n");
     printf("Usage: makedepend [options] <file1.c> [file2.c] [...]\n\n");
     printf("-D<name>\tAdd a definition for <name> (with value 1).\n");
     printf("-D<name>=<def>\tAdd a definition for <name>, with value <def>.\n");
