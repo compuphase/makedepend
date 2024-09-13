@@ -662,8 +662,11 @@ add_include(struct filepointer *filep, struct inclist *file,
     if (newfile == NULL) {
         if ((!ignore_missing || !failOK) && (!exclude_sysincludes || type == INCLUDEUSR || type == INCLUDENEXTUSR))
             warning_std(file_red, file, filep->f_line, "cannot locate \"%s\"\n", include);
-        if (failOK)
+        if (failOK) {
+            if (ignore_missing && (type == INCLUDEUSR || type == INCLUDENEXTUSR))
+                included_by(file, newinclude(include, include));
             return;
+        }
         show_where_not = TRUE;
         newfile = inc_path(file->i_file, include, type);
         show_where_not = FALSE;

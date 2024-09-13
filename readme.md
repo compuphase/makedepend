@@ -3,12 +3,12 @@
 
 ## Introduction
 
-makedepend scans a list of C and C++ source files for `#include` statements,
+**makedepend** scans a list of C and C++ source files for `#include` statements,
 and then rewrites the makefile to add these header files as "dependencies" of
 the target for the C/C++ files. This will cause the Make program to recompile
 the C/C++ sources if one of the header files is modified.
 
-Originally, makedepend was distributed as part of the X Window system
+Originally, **makedepend** was distributed as part of the X Window system
 (copyright by the Open Group). The version presented here is a derivative of
 the original utility. See section [Change List](#Change-List) for details.
 
@@ -27,13 +27,13 @@ depend :
         makedepend -- $(CFLAGS) $(SRCS)
 ```
 
-In the above example, makedepend parses the options in the `CFLAGS` macro.
-This macro is set after a double hyphen (`--`), so that makedepend will not
+In the above example, **makedepend** parses the options in the `CFLAGS` macro.
+This macro is set after a double hyphen (`--`), so that **makedepend** will not
 warn for any options in `CFLAGS` that it does not recognize. Specifically, in
-this example, makedepend handles the `-D` and `-I` options in `CFLAGS` but
+this example, **makedepend** handles the `-D` and `-I` options in `CFLAGS` but
 silently ignores the `-Wall` option.
 
-By default, makedepend writes its output to a file called `makefile` (on
+By default, **makedepend** writes its output to a file called `makefile` (on
 operating systems with case-sensitive filenames, it tries both `makefile` and
 `Makefile`). If it finds it, it appends the generated dependencies to that
 makefile. Following the above example, the output of running `make depend` might
@@ -53,20 +53,16 @@ file2.o : file2.h common.h
 
 Running `make depend` again will replace the lines below the comment `# GENERATED DEPENDENCIES...`
 with the freshly generated dependency list. This is why it is important to not
-remove or change that comment, because if makedepend does not find that line,
+remove or change that comment, because if **makedepend** does not find that line,
 it appends its dependency list to the makefile again, rather than replacing the
 existing (and possibly outdated) dependency list.
-
-makedepend warns about an include file that it cannot locate, because it will
-skip this include file in the dependency list for the target. See also the `-i`
-option.
 
 ### Keep dependencies separate from build rules
 
 In an environment where you work in a team, and especially when the makefile is
 committed to version control, it may be preferable to keep machine-generated
 dependencies separate from the general build rules and options. Accordingly,
-makedepend is set to write its output to a different file, which is then
+**makedepend** is set to write its output to a different file, which is then
 included in the makefile.
 
 For example:
@@ -90,7 +86,7 @@ missing (this is the GNU Make syntax; other Make's may need a different syntax).
 The above examples update the dependencies when making the target `depend`. This
 step can also be automated, such that the dependencies are updated when some
 targets when the relevant source files change. To this end, the rule for
-makedepend must list the source files as the dependencies, and the targets for
+**makedepend** must list the source files as the dependencies, and the targets for
 the object file must list the generated output file as a dependency.
 
 ```make
@@ -105,15 +101,15 @@ $(SRCS:.c=.o) : makefile.dep
 -include makefile.dep
 ```
 
-Note that the shell line for makedepend uses the `$?` macro to list only the
+Note that the shell line for **makedepend** uses the `$?` macro to list only the
 files from `$(SRCS)` on the command line that are newer than the target
 `makefile.dep`. This reduces the time needed to update the dependencies, because
 only the modified files are scanned.
 
-The other important change on the shell line for makedepend is the `-a` option.
+The other important change on the shell line for **makedepend** is the `-a` option.
 Without this option, the resulting `makefile.dep` would contain only the
-dependencies of the files of the most recent run. By default, makedepend removes
-all dependency lines from the output file. The `-a` option lets makedepend
+dependencies of the files of the most recent run. By default, **makedepend** removes
+all dependency lines from the output file. The `-a` option lets **makedepend**
 remove <em>only</em> the dependency lines of the files on the command line
 (which will be regenerated).
 
@@ -123,24 +119,30 @@ from the list of sources, is GNU Make syntax, using suffix substitution of the
 
 ### Predefined variables
 
-While makedepend processes the source files, the predefined macro `_makedepend`
+While **makedepend** processes the source files, the predefined macro `_makedepend`
 is set. Testing for this macro in the source file allows you to to conditionally
-exclude a part of the source code from makedepend's processing.
+exclude a part of the source code from **makedepend**'s processing.
 
-Other predefined variables that makedepend sets are platform-specific. you can
+Other predefined variables that **makedepend** sets are platform-specific. you can
 run `makedepend -h -v` to show the list of predefined variables. You can use the
 `-U` argument to undefine a predefined variable.
 
-When a source file on the makedepend command line has the extension `.cpp`, `.cxx`,
+When a source file on the **makedepend** command line has the extension `.cpp`, `.cxx`,
 `.cc` or `.c++`, the variable `__cplusplus` is predefined for that file.
 
-### Locate source files with VPATH
+### Setting "system" include paths
 
 When cross-compiling for a different platform (for example, when developing
 embedded software for a microcontroller on a workstation), the system include
 paths are likely for the workstation's main compiler setup and may not be
 correct for the target compiler. In this case, you can remove the system include
-paths with the `-I-` option and set a specific path for "system" includes.
+paths with the `-I-` option and set a specific path for *system* includes.
+
+*System* includes refer to include directives with angle brackets (`< ... >`):
+```#include <stdio.h>
+```
+
+### Locate source files with VPATH
 
 When source files are stored in different directories, with `vpath`'s set to
 locate the files, add the source files as dependencies on the `depend` target
@@ -177,28 +179,46 @@ to the files where applicable. For example, if `bootLPC11Uxx.c` is found in
 `./startup/cmsis/`, the full path `./startup/cmsis/bootLPC11Uxx.c` is included
 in `$^`.
 
+### Dependencies for generated includes
+
+When **makedepend** cannot depend an include file, it issues a warning and does
+*not* add it to the dependency list for the target. In other words, an include
+file must exist (in the search paths), for **makedepend** to add it to the
+dependency list of the target.
+
+When an include file is *generated* by a utility, that file would be missed by
+**makedepend**, because it does not exist *yet*. To remediate this, add the `-i`
+option to the **makedepend** command line. With this option, the warning message
+for a missing include file is suppressed and the name is added tp the dependency
+list. However, this applies only to *user* includes, not *system* includes.
+
+*User* includes refer to `#include` directives using double quotes, whereas
+*system* includes use angle brackets (`< ... >`):
+```#include "config.h"   /* user include */
+#include <stdio.h>    /* system include */
+```
 
 ## Options
 <dl>
 <dt> <code>-D</code>name=def </dt>
 <dt> <code>-D</code>name </dt>
 <dd>
-  Defines a symbol for the makedepend preprocessor (which works like the
+  Defines a symbol for the **makedepend** preprocessor (which works like the
   C/C++ preprocessor). When no value is explicitly defined, the symbol is
   defined as "1".
 </dd>
 
 <dt> <code>-I</code>path </dt>
 <dd>
-  Adds a path to its list of directories that makedepend searches for
+  Adds a path to its list of directories that **makedepend** searches for
   files when it encounters a <code>#include</code> directive.
   <br><br>
-  By default, makedepend appends the standard include directories at the end
-  of the directory list. In Linux, Unix and OS/2, makedepend evaluates the
+  By default, **makedepend** appends the standard include directories at the end
+  of the directory list. In Linux, Unix and OS/2, **makedepend** evaluates the
   <code>C_INCLUDE_PATH</code> environment variable for the standard includes; in
-  Microsoft Windows, makedepend evaluates the <code>INCLUDE</code> environment
-  variable. When the option <code>-I-</code> is set, makedepend does <em>not</em>
-  append the standard include directories (and thus prevents makedepend from
+  Microsoft Windows, **makedepend** evaluates the <code>INCLUDE</code> environment
+  variable. When the option <code>-I-</code> is set, **makedepend** does <em>not</em>
+  append the standard include directories (and thus prevents **makedepend** from
   searching the standard include directories).
 </dd>
 
@@ -211,7 +231,7 @@ in `$^`.
 <dd>
   Accumulates the dependencies in the output file instead of removing the
   dependencies for files that are <em>not</em> listed on the command line of
-  makedepend. With this option, you can call makedepend multiple times with
+  **makedepend**. With this option, you can call **makedepend** multiple times with
   different filename lists, and obtaining the accumulated dependencies of all
   those calls.
   <br><br>
@@ -222,15 +242,15 @@ in `$^`.
 
 <dt> <code>-b</code> </dt>
 <dd>
-  No backups. By default, makedepend copies the makefile to one with a .bak
-  extension before modifying it. When this option is set, makedepend deletes
+  No backups. By default, **makedepend** copies the makefile to one with a .bak
+  extension before modifying it. When this option is set, **makedepend** deletes
   the backup file.
 </dd>
 
 <dt> <code>-c</code> </dt>
 <dd>
   Includes the C/C++ source file in the list of dependencies. By default,
-  makedepend only lists all files <em>included</em> by the source file on the
+  **makedepend** only lists all files <em>included</em> by the source file on the
   dependency line.
 </dd>
 
@@ -251,16 +271,17 @@ in `$^`.
 
 <dt> <code>-h</code> </dt>
 <dd>
-  Help. Shows brief usage information for makedepend. When verbose output is
+  Help. Shows brief usage information for **makedepend**. When verbose output is
   enabled (see <code>-v</code>), the list of predefined variables is listed too.
 </dd>
 
 <dt> <code>-i</code> </dt>
 <dd>
-  Ignore include files that cannot be located. That is, do <b>not</b> warn about any
-  include files that cannot be found. Note that include files that are not
-  found, are <i>never</i> added as a dependency to the target. This option silences
-  the warning about missing files.
+  Ignore include files that cannot be located. That is, do *not* warn about
+  any include files that cannot be found. In addition, any missing include files
+  are *still* added as a dependency to the target. (Without this option,
+  include files that are not found, are *removed* from the dependency list of
+  the target; and a warning is issued.)
 </dd>
 
 <dt> <code>-m</code> </dt>
@@ -289,14 +310,14 @@ in `$^`.
 
 <dt> <code>-s</code>string </dt>
 <dd>
-  Sets the delimiter string (or "separator") below which makedepend writes the
+  Sets the delimiter string (or "separator") below which **makedepend** writes the
   generated depedencies. The default string is
   "#&nbsp;GENERATED&nbsp;DEPENDENCIES.&nbsp;DO&nbsp;NOT&nbsp;DELETE.".
 </dd>
 
 <dt> <code>-v</code> </dt>
 <dd>
-  Verbose operation: this option causes makedepend to show more notices and
+  Verbose operation: this option causes **makedepend** to show more notices and
   warnings during processing the files. It will also emit the list of files
   included by each input file.
 </dd>
@@ -322,10 +343,10 @@ in `$^`.
   Following a double hyphen (<code>--</code>), only the <code>-D</code>, <code>-I</code> and <code>-U</code> options are
   handled, and any others are silently ignored (source filenames are still
   handled). The intended purpose of this syntax is that the same <code>CFLAGS</code>
-  macro that is passed to the C/C++ compiler can also be passed to makedepend.
+  macro that is passed to the C/C++ compiler can also be passed to **makedepend**.
   <br><br>
   A second double hyphen ends this special processing; it is needed if options
-  that are specific to makedepend follow the definitions in <code>CFLAGS</code> (or
+  that are specific to **makedepend** follow the definitions in <code>CFLAGS</code> (or
   another makefile macro).
 </dd>
 </dl>
@@ -357,7 +378,7 @@ in this Software without prior written authorization from The Open Group.
 
 ## Change List
 
-This version is derived from a port of makedepend by [Derell Licht](https://github.com/DerellLicht/makedepend) (circa 2005)
+This version is derived from a port of **makedepend** by [Derell Licht](https://github.com/DerellLicht/makedepend) (circa 2005)
 of the original source code to a contemporary version of GNU GCC. It has since
 been modified to bring new features and improvements:
 
@@ -366,7 +387,7 @@ been modified to bring new features and improvements:
 * Filenames with space characters are written with the space characters
   "escaped" with a backslash (in a way compatible with GNU Make).
 * The `-a` command line option now does an intelligent "append", where
-  dependencies for new files are added, but if a file that makedepend scans
+  dependencies for new files are added, but if a file that **makedepend** scans
   already appears in the section below the delimiter, the dependencies for that
   file are replaced.
 * Added the `-b` command line option, to skip making backups of the input
@@ -379,14 +400,15 @@ been modified to bring new features and improvements:
   are part of the project (all system-specific dependencies are excluded).
 * Added the `-h` command line option, to show program usage. The `-?` option is
   equivalent to `-h`.
-* Let makedepend display the (platform-specific) list of predefined variables
+* Let **makedepend** display the (platform-specific) list of predefined variables
   with the `-h -v` arguments (verbose help).
 * Replace the option `-Y` by `-I-`.
-* Let makedepend create the "makefile" with dependencies if it does not yet
+* Let **makedepend** create the "makefile" with dependencies if it does not yet
   exist.
 * Read the `INCLUDE` environment variable on Microsoft Windows (instead of the
   `C_INCLUDE_PATH` variable).
 * Added the prededined `_makedepend` and `__cplusplus` variables.
-* Add a warning for the case that an include file cannot be located (because
-  that file will then not be added as a dependency). The `-i` option silences
-  the warning.
+* Add a warning for the case that an include file cannot be located (and don't
+  add that file as a dependency). The `-i` option reverts this behaviour
+  (silences the warning, and still adding it as a dependency).
+
