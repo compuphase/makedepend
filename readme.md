@@ -189,11 +189,11 @@ dependency list of the target.
 When an include file is *generated* by a utility, that file would be missed by
 **makedepend**, because it does not exist *yet*. To remediate this, add the `-i`
 option to the **makedepend** command line. With this option, the warning message
-for a missing include file is suppressed and the name is added tp the dependency
+for a missing include file is suppressed and the name is added to the dependency
 list. However, this applies only to *user* includes, not *system* includes.
 
 *User* includes refer to `#include` directives using double quotes, whereas
-*system* includes use angle brackets (`< ... >`):
+*system* includes use angle brackets (`<...>`):
 ```#include "config.h"   /* user include */
 #include <stdio.h>    /* system include */
 ```
