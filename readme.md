@@ -181,7 +181,7 @@ in `$^`.
 
 ### Dependencies for generated includes
 
-When **makedepend** cannot depend an include file, it issues a warning and does
+When **makedepend** cannot access an include file, it issues a warning and does
 *not* add it to the dependency list for the target. In other words, an include
 file must exist (in the search paths), for **makedepend** to add it to the
 dependency list of the target.
