@@ -203,22 +203,22 @@ list. However, this applies only to *user* includes, not *system* includes.
 <dt> <code>-D</code>name=def </dt>
 <dt> <code>-D</code>name </dt>
 <dd>
-  Defines a symbol for the **makedepend** preprocessor (which works like the
+  Defines a symbol for the <b>makedepend</b> preprocessor (which works like the
   C/C++ preprocessor). When no value is explicitly defined, the symbol is
   defined as "1".
 </dd>
 
 <dt> <code>-I</code>path </dt>
 <dd>
-  Adds a path to its list of directories that **makedepend** searches for
+  Adds a path to its list of directories that <b>makedepend</b> searches for
   files when it encounters a <code>#include</code> directive.
   <br><br>
-  By default, **makedepend** appends the standard include directories at the end
-  of the directory list. In Linux, Unix and OS/2, **makedepend** evaluates the
+  By default, <b>makedepend</b> appends the standard include directories at the end
+  of the directory list. In Linux, Unix and OS/2, <b>makedepend</b> evaluates the
   <code>C_INCLUDE_PATH</code> environment variable for the standard includes; in
-  Microsoft Windows, **makedepend** evaluates the <code>INCLUDE</code> environment
-  variable. When the option <code>-I-</code> is set, **makedepend** does <em>not</em>
-  append the standard include directories (and thus prevents **makedepend** from
+  Microsoft Windows, <b>makedepend</b> evaluates the <code>INCLUDE</code> environment
+  variable. When the option <code>-I-</code> is set, <b>makedepend</b> does <em>not</em>
+  append the standard include directories (and thus prevents <b>makedepend</b> from
   searching the standard include directories).
 </dd>
 
@@ -231,7 +231,7 @@ list. However, this applies only to *user* includes, not *system* includes.
 <dd>
   Accumulates the dependencies in the output file instead of removing the
   dependencies for files that are <em>not</em> listed on the command line of
-  **makedepend**. With this option, you can call **makedepend** multiple times with
+  <b>makedepend</b>. With this option, you can call <b>makedepend</b> multiple times with
   different filename lists, and obtaining the accumulated dependencies of all
   those calls.
   <br><br>
@@ -242,15 +242,15 @@ list. However, this applies only to *user* includes, not *system* includes.
 
 <dt> <code>-b</code> </dt>
 <dd>
-  No backups. By default, **makedepend** copies the makefile to one with a .bak
-  extension before modifying it. When this option is set, **makedepend** deletes
+  No backups. By default, <b>makedepend</b> copies the makefile to one with a .bak
+  extension before modifying it. When this option is set, <b>makedepend</b> deletes
   the backup file.
 </dd>
 
 <dt> <code>-c</code> </dt>
 <dd>
   Includes the C/C++ source file in the list of dependencies. By default,
-  **makedepend** only lists all files <em>included</em> by the source file on the
+  <b>makedepend</b> only lists all files <em>included</em> by the source file on the
   dependency line.
 </dd>
 
@@ -271,16 +271,16 @@ list. However, this applies only to *user* includes, not *system* includes.
 
 <dt> <code>-h</code> </dt>
 <dd>
-  Help. Shows brief usage information for **makedepend**. When verbose output is
+  Help. Shows brief usage information for <b>makedepend</b>. When verbose output is
   enabled (see <code>-v</code>), the list of predefined variables is listed too.
 </dd>
 
 <dt> <code>-i</code> </dt>
 <dd>
-  Ignore include files that cannot be located. That is, do *not* warn about
+  Ignore include files that cannot be located. That is, do <i>not</i> warn about
   any include files that cannot be found. In addition, any missing include files
-  are *still* added as a dependency to the target. (Without this option,
-  include files that are not found, are *removed* from the dependency list of
+  are <i>still</i> added as a dependency to the target. (Without this option,
+  include files that are not found, are <i>removed</i> from the dependency list of
   the target; and a warning is issued.)
 </dd>
 
@@ -310,14 +310,14 @@ list. However, this applies only to *user* includes, not *system* includes.
 
 <dt> <code>-s</code>string </dt>
 <dd>
-  Sets the delimiter string (or "separator") below which **makedepend** writes the
+  Sets the delimiter string (or "separator") below which <b>makedepend</b> writes the
   generated depedencies. The default string is
   "#&nbsp;GENERATED&nbsp;DEPENDENCIES.&nbsp;DO&nbsp;NOT&nbsp;DELETE.".
 </dd>
 
 <dt> <code>-v</code> </dt>
 <dd>
-  Verbose operation: this option causes **makedepend** to show more notices and
+  Verbose operation: this option causes <b>makedepend</b> to show more notices and
   warnings during processing the files. It will also emit the list of files
   included by each input file.
 </dd>
@@ -343,10 +343,10 @@ list. However, this applies only to *user* includes, not *system* includes.
   Following a double hyphen (<code>--</code>), only the <code>-D</code>, <code>-I</code> and <code>-U</code> options are
   handled, and any others are silently ignored (source filenames are still
   handled). The intended purpose of this syntax is that the same <code>CFLAGS</code>
-  macro that is passed to the C/C++ compiler can also be passed to **makedepend**.
+  macro that is passed to the C/C++ compiler can also be passed to <b>makedepend</b>.
   <br><br>
   A second double hyphen ends this special processing; it is needed if options
-  that are specific to **makedepend** follow the definitions in <code>CFLAGS</code> (or
+  that are specific to <b>makedepend</b> follow the definitions in <code>CFLAGS</code> (or
   another makefile macro).
 </dd>
 </dl>
