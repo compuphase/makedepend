@@ -31,51 +31,53 @@ in this Software without prior written authorization from The Open Group.
 
 #include "def.h"
 #ifdef hpux
-#define sigvec sigvector
+#   define sigvec sigvector
 #endif /* hpux */
 
 #ifdef X_POSIX_C_SOURCE
-# define _POSIX_C_SOURCE X_POSIX_C_SOURCE
-# include <signal.h>
-# undef _POSIX_C_SOURCE
+#   define _POSIX_C_SOURCE X_POSIX_C_SOURCE
+#   include <signal.h>
+#   undef _POSIX_C_SOURCE
 #else
-# if defined(X_NOT_POSIX) || defined(_POSIX_SOURCE)
-#   include <signal.h>
-# else
-#   define _POSIX_SOURCE
-#   include <signal.h>
-#   undef _POSIX_SOURCE
-# endif
+#   if defined(X_NOT_POSIX) || defined(_POSIX_SOURCE)
+#       include <signal.h>
+#   else
+#       define _POSIX_SOURCE
+#       include <signal.h>
+#       undef _POSIX_SOURCE
+#   endif
 #endif
 
 #if (defined _WIN32 || defined __WIN32__) && !defined WIN32
-# define WIN32
+#   define WIN32
 #endif
 
 #if defined WIN32
-# include <io.h>
-# define strcasecmp(s1, s2)  _stricmp((s1), (s2))
-# define open(name, method)  _open((name), (method))
-# define close(handle)       _close(handle)
-# define read(handle, buffer, size) _read((handle), (buffer), (size))
-# define unlink(name)        _unlink(name)
+#   include <io.h>
+#   define open(name, method)           _open((name), (method))
+#   define close(handle)                _close(handle)
+#   define read(handle, buffer, size)   _read((handle), (buffer), (size))
+#   define unlink(name)                 _unlink(name)
+#   if !defined __MINGW32__
+#       define strcasecmp(s1, s2)       _stricmp((s1), (s2))
+#   endif
 #endif
 
 #include <stdarg.h>
 
 #ifdef MINIX
-# define USE_CHMOD   1
+#   define USE_CHMOD   1
 #endif
 
 #ifdef DEBUG
-int _debugmask;
+    int _debugmask;
 #endif
 
 /* #define DEBUG_DUMP */
 #ifdef DEBUG_DUMP
-#define DBG_PRINT(file, fmt, args)   fprintf(file, fmt, args)
+#   define DBG_PRINT(file, fmt, args)   fprintf(file, fmt, args)
 #else
-#define DBG_PRINT(file, fmt, args)  /* empty */
+#   define DBG_PRINT(file, fmt, args)  /* empty */
 #endif
 
 #define DASH_INC_PRE    "#include \""
@@ -108,15 +110,15 @@ const char * const directives[] = { /* the order of these strings must match wit
 #define  INCLUDEDIR  ""
 
 #define MAKEDEPEND
-#include "imakemdep.h"            /* from config sources */
+#   include "imakemdep.h"         /* from config sources */
 #undef MAKEDEPEND
 
 #if defined WIN32 || defined _WIN32 || defined __WIN32__
-#define OPEN_READ_TEXT  "rt"
-#define OPEN_WRITE_TEXT "wt"
+#   define OPEN_READ_TEXT  "rt"
+#   define OPEN_WRITE_TEXT "wt"
 #else
-#define OPEN_READ_TEXT  "r"
-#define OPEN_WRITE_TEXT "w"
+#   define OPEN_READ_TEXT  "r"
+#   define OPEN_WRITE_TEXT "w"
 #endif
 
 struct inclist inclist[MAXFILES],
@@ -160,17 +162,17 @@ _catch (int sig)
 }
 
 #if defined(USG) || (defined(i386) && defined(SYSV)) || defined(WIN32) || defined(__UNIXOS2__) || defined(Lynx_22) || defined(__CYGWIN__)
-#define USGISH
+# define USGISH
 #endif
 
 #ifndef USGISH
-#ifdef X_NOT_POSIX
-#define sigaction sigvec
-#define sa_handler sv_handler
-#define sa_mask sv_mask
-#define sa_flags sv_flags
-#endif
-static struct sigaction sig_act;
+#   ifdef X_NOT_POSIX
+#       define sigaction sigvec
+#       define sa_handler sv_handler
+#       define sa_mask sv_mask
+#       define sa_flags sv_flags
+#   endif
+    static struct sigaction sig_act;
 #endif /* USGISH */
 
 int main (int argc, char *argv[])
@@ -184,7 +186,10 @@ int main (int argc, char *argv[])
     const struct symtab *psymp = predefs;
     const char *endmarker = NULL;
     char **undeflist = NULL;
-    int numundefs = 0, i;
+    int numundefs = 0;
+    char **searchpathlist = NULL;
+    int numsearchpaths = 0;
+    int i;
     boolean accumulate = FALSE;
     boolean systeminclude = TRUE;
     boolean sort_targets = FALSE;
@@ -317,7 +322,30 @@ int main (int argc, char *argv[])
                 }
                 undeflist[numundefs - 1] = argv[0] + i;
                 break;
-                /* do not use if endmarker processing */
+                /* do not handle options below if endmarker has been set */
+            case 'L':
+                if (endmarker)
+                    break;
+                numsearchpaths++;
+                if (numsearchpaths == 1) {
+                    searchpathlist = (char**)malloc (sizeof (char *));
+                } else {
+                    char **old = searchpathlist;
+                    searchpathlist = (char**)realloc (searchpathlist, numsearchpaths * sizeof (char *));
+                    if (!searchpathlist) {
+                        free (old);
+                        memoryerr ();
+                    }
+                }
+                /* allow both syntax -Lpath and -L path */
+                i = 2;
+                if (argv[0][i] == '\0') {
+                    argv++;
+                    argc--;
+                    i = 0;
+                }
+                searchpathlist[numsearchpaths - 1] = argv[0] + i;
+                break;
             case 'a':
                 if (endmarker)
                     break;
@@ -346,6 +374,56 @@ int main (int argc, char *argv[])
                     goto badopt;
                 exclude_sysincludes = TRUE;
                 break;
+            case 'f':
+                if (endmarker)
+                    break;
+                makefile = argv[0] + 2;
+                if (*makefile == '\0') {
+                    makefile = *(++argv);
+                    argc--;
+                }
+                break;
+            case '?':
+            case 'h':
+                if (endmarker)
+                    break;
+                if (argv[0][2])
+                    goto badopt;
+                showhelp = TRUE;
+                break;
+            case 'i':
+                if (endmarker)
+                    break;
+                if (strcmp (&argv[0][1], "include") == 0) {
+                    char *buf;
+                    if (argc < 2)
+                        fatalerr ("option -include is a missing its parameter\n");
+                    if (cmdinc_count >= MAXINCFILES)
+                        fatalerr ("Too many -include flags.\n");
+                    argc--;
+                    argv++;
+                    buf = (char*)malloc (strlen (DASH_INC_PRE) +
+                                         strlen (argv[0]) +
+                                         strlen (DASH_INC_POST) + 1);
+                    if (!buf)
+                        fatalerr ("out of memory at " "-include string\n");
+                    cmdinc_list[2 * cmdinc_count + 0] = argv[0];
+                    cmdinc_list[2 * cmdinc_count + 1] = buf;
+                    cmdinc_count++;
+                    break;
+                } else {
+                    if (argv[0][2])
+                        goto badopt;
+                    ignore_missing = TRUE;
+                }
+                break;
+            case 'm':
+                if (endmarker)
+                    break;
+                if (argv[0][2])
+                    goto badopt;
+                warn_multiple = TRUE;
+                break;
             case 'o':
                 if (endmarker)
                     break;
@@ -363,12 +441,12 @@ int main (int argc, char *argv[])
                 if (endmarker)
                     break;
                 if (argv[0][2] == '\0') {
-                    /* syntax -p path */
+                    /* syntax -p prefix */
                     argv++;
                     argc--;
                     objprefix = argv[0];
                 } else {
-                    /* syntax -ppath */
+                    /* syntax -pprefix */
                     objprefix = argv[0] + 2;
                 }
                 break;
@@ -410,57 +488,7 @@ int main (int argc, char *argv[])
                     width = atoi (argv[0] + 2);
                 }
                 break;
-            case 'f':
-                if (endmarker)
-                    break;
-                makefile = argv[0] + 2;
-                if (*makefile == '\0') {
-                    makefile = *(++argv);
-                    argc--;
-                }
-                break;
-            case '?':
-            case 'h':
-                if (endmarker)
-                    break;
-                if (argv[0][2])
-                    goto badopt;
-                showhelp = TRUE;
-                break;
-            case 'm':
-                if (endmarker)
-                    break;
-                if (argv[0][2])
-                    goto badopt;
-                warn_multiple = TRUE;
-                break;
 
-            case 'i':
-                if (endmarker)
-                    break;
-                if (strcmp (&argv[0][1], "include") == 0) {
-                    char *buf;
-                    if (argc < 2)
-                        fatalerr ("option -include is a missing its parameter\n");
-                    if (cmdinc_count >= MAXINCFILES)
-                        fatalerr ("Too many -include flags.\n");
-                    argc--;
-                    argv++;
-                    buf = (char*)malloc (strlen (DASH_INC_PRE) +
-                                         strlen (argv[0]) +
-                                         strlen (DASH_INC_POST) + 1);
-                    if (!buf)
-                        fatalerr ("out of memory at " "-include string\n");
-                    cmdinc_list[2 * cmdinc_count + 0] = argv[0];
-                    cmdinc_list[2 * cmdinc_count + 1] = buf;
-                    cmdinc_count++;
-                    break;
-                } else {
-                    if (argv[0][2])
-                        goto badopt;
-                    ignore_missing = TRUE;
-                }
-                break;
             default:
                 if (endmarker)
                     break;
@@ -610,10 +638,11 @@ int main (int argc, char *argv[])
      * now peruse through the list of files.
      */
     for (fltail = filelist; *fltail; fltail++) {
-        filecontent = getfile (*fltail);
+        char *path = locatefile (*fltail, (const char**)searchpathlist, numsearchpaths);
+        filecontent = getfile (path);
         setfile_cmdinc (filecontent, cmdinc_count, cmdinc_list);
-        ip = newinclude (*fltail, (char *) NULL);
-        setfile_vars (*fltail, ip);
+        ip = newinclude (path, (char *) NULL);
+        setfile_vars (path, ip);
         find_includes (filecontent, ip, ip, 0, TRUE);
         freefile (filecontent);
         if (include_cfile)
@@ -623,11 +652,14 @@ int main (int argc, char *argv[])
     }
     if (printed)
         printf ("\n");
+
+    if (searchpathlist)
+        free (searchpathlist);
+
     return 0;
 }
 
 #ifdef __UNIXOS2__
-
 /*
  * eliminate \r chars from file
  */
@@ -642,7 +674,56 @@ static int elim_cr (char *buf, int sz)
 }
 #endif
 
-struct filepointer *getfile (const char *file)
+static void convert_slashes (char *path)
+{
+#ifdef WIN32
+    char *ptr;
+    assert(path);
+    while ((ptr = strchr (path, '/')))
+        *ptr = '\\';
+#else
+    (void)path;
+#endif
+}
+
+char *locatefile (char *filename, const char **searchpaths, int searchentries)
+{
+    /* Note: this function is not re-entrant, because of this static buffer */
+    static char localpath[2048];
+    int i;
+
+    assert(filename);
+    assert(searchentries >= 0);
+    if (!searchpaths || searchentries == 0)
+        return filename;    /* no search paths set, use given file */
+    if (strlen (filename) >= sizeof localpath)
+        return filename;    /* the filename is so long, we cannot prefix a local path anyway */
+    strcpy (localpath, filename);
+    convert_slashes (localpath);
+    if (localpath[0] == '/' || localpath[0] == '\\' || (strlen(localpath) > 3 && localpath[1] == ':' && localpath[2] == '\\'))
+        return localpath;   /* absolute path, use given file (but convert slashes) */
+    if (access (localpath, 0) == 0)
+        return localpath;   /* file found (after possibly converting slashes), no need to look further */
+    for (i = 0; i < searchentries; i++) {
+        size_t len = strlen (searchpaths[i]);
+        if (len == 0 || len >= sizeof localpath - 3)
+            continue;       /* this search path is either empty, so long, no filename could realistically be appended to it */
+        strcpy (localpath, searchpaths[i]);
+        if (localpath[len - 1] != '/' && localpath[len - 1] != '\\') {
+            localpath[len++] = '/';
+            localpath[len] = '\0';
+        }
+        if (len + strlen (filename) >= sizeof localpath)
+            continue;
+        strcat (localpath, filename);
+        convert_slashes (localpath);
+        if (access (localpath, 0) == 0)
+            return localpath;   /* file found in this path, use it */
+    }
+    return filename;        /* no other location found, use given name (which will likely fail) */
+}
+
+struct filepointer *getfile (const char *filename)
 {
     int fd;
     struct filepointer *content;
@@ -652,9 +733,9 @@ struct filepointer *getfile (const char *file)
     if (!content)
         memoryerr();
     assert(content);
-    content->f_name = file;
-    if ((fd = open (file, O_RDONLY)) < 0) {
-        warning ("cannot open \"%s\"\n", file);
+    content->f_name = filename;
+    if ((fd = open (filename, O_RDONLY)) < 0) {
+        warning ("cannot open \"%s\"\n", filename);
         content->f_p = content->f_base = content->f_end = (char *) malloc (1);
         *content->f_p = '\0';
         return (content);
@@ -665,7 +746,7 @@ struct filepointer *getfile (const char *file)
         memoryerr ();
     assert(content->f_base);
     if ((st.st_size = read (fd, content->f_base, st.st_size)) < 0)
-        fatalerr ("failed to read %s\n", file);
+        fatalerr ("failed to read %s\n", filename);
 #ifdef __UNIXOS2__
     st.st_size = elim_cr (content->f_base, st.st_size);
 #endif
@@ -1096,12 +1177,13 @@ void warning_cont(const char *msg, ...)
 
 void showusage (void)
 {
-    printf("makedepend 1.0.9\n\n");
+    printf("makedepend 1.0.10\n\n");
     printf("Usage: makedepend [options] <file1.c> [file2.c] [...]\n\n");
     printf("-D<name>\tAdd a definition for <name> (with value 1).\n");
     printf("-D<name>=<def>\tAdd a definition for <name>, with value <def>.\n");
     printf("-I<directory>\tAdd the directory to the list of include directories.\n");
     printf("-I-\t\tSkip the standard (compiler-defined) include directories.\n");
+    printf("-L<directory>\tAdd the directory to the search paths for source files.\n");
     printf("-U<name>\tUndefine <name>.\n");
     printf("-a\t\tAppend dependencies to the end of the file instead of replacing\n"
            "\t\tthem.\n");

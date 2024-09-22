@@ -6,6 +6,16 @@ else
 endif
 BIN=makedepend$(EXTENSION)
 
+CFLAGS = -Wall -Wno-format-truncation
+LFLAGS = -Wall
+ifdef NDEBUG
+    CFLAGS += -O3
+    LFLAGS += -s
+else
+    CFLAGS += -g
+    LFLAGS += -g
+endif
+
 all: $(BIN)
 
 clean:
@@ -15,10 +25,10 @@ depend:
 	$(BIN) $(OBJS:.o=.c)
 
 $(BIN): $(OBJS)
-	gcc -Wall -s -O3 $(OBJS) -o $@
+	gcc $(LFLAGS) -o $@ $(OBJS)
 
 %.o: %.c
-	gcc -Wall -Wno-format-truncation -c -O3 $<
+	gcc $(CFLAGS) -c $<
 
 # GENERATED DEPENDENCIES. DO NOT DELETE.
 

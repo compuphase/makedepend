@@ -199,6 +199,13 @@ list. However, this applies only to *user* includes, not *system* includes.
 ```
 
 ## Options
+
+For environments with limited command line lengths, **makedepend** can read the
+options for a *response file*. The response file is passed to **makedepend**
+with the following syntax (note the "@" character):
+```makedepend @options.txt
+```
+
 <dl>
 <dt> <code>-D</code>name=def </dt>
 <dt> <code>-D</code>name </dt>
@@ -220,6 +227,18 @@ list. However, this applies only to *user* includes, not *system* includes.
   variable. When the option <code>-I-</code> is set, <b>makedepend</b> does <em>not</em>
   append the standard include directories (and thus prevents <b>makedepend</b> from
   searching the standard include directories).
+</dd>
+
+<dt> <code>-L</code>path </dt>
+<dd>
+  Adds a path for <b>makedepend</b> to locate <em>source</em> files. That is, if
+  <b>makedepend</b> does not find a source file that is specified on the command
+  line in the active directory, it prepends the paths set this the <code>-L</code>
+  option and tries again.
+  <br><br>
+  The <code>-L</code> option may appear multiple times. The paths are searched
+  in the order that they appear on the command line. The active directory is
+  always searched first.
 </dd>
 
 <dt> <code>-U</code>name </dt>
@@ -403,6 +422,8 @@ been modified to bring new features and improvements:
 * Let **makedepend** display the (platform-specific) list of predefined variables
   with the `-h -v` arguments (verbose help).
 * Replace the option `-Y` by `-I-`.
+* Add option `-L` as an alternative to using `vpath` and/or specifying full
+  paths on the command line.
 * Let **makedepend** create the "makefile" with dependencies if it does not yet
   exist.
 * Read the `INCLUDE` environment variable on Microsoft Windows (instead of the

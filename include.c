@@ -173,11 +173,11 @@ newinclude(char *newfile, const char *incstring)
      * Clean up the path: remove ./ and resolve ../
      * On Microsoft Windows, do the same for .\ and ..\
      */
-    assert(newfile != NULL);
+    assert(newfile);
     remove_dotdot(newfile, '/');
-    #if defined WIN32 || defined _WIN32 || defined __WIN32__
+#   if defined WIN32 || defined _WIN32 || defined __WIN32__
         remove_dotdot(newfile, '\\');
-    #endif
+#   endif
 
     /*
      * First, put this file on the global list of include files.
