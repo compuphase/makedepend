@@ -1,5 +1,5 @@
 
-/* $Xorg: main.c,v 1.0.9 2001/02/09 02:03:16 xorgcvs Exp $ */
+/* $Xorg: main.c,v 1.0.10 2001/02/09 02:03:16 xorgcvs Exp $ */
 
 /*
 
@@ -162,7 +162,7 @@ _catch (int sig)
 }
 
 #if defined(USG) || (defined(i386) && defined(SYSV)) || defined(WIN32) || defined(__UNIXOS2__) || defined(Lynx_22) || defined(__CYGWIN__)
-# define USGISH
+#   define USGISH
 #endif
 
 #ifndef USGISH

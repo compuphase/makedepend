@@ -154,7 +154,7 @@ struct symtab** isdefined(const char *symbol, struct inclist *file,
                           struct inclist **srcfile);
 struct symtab** fdefined(const char *symbol, struct inclist *file,
                          struct inclist **srcfile);
-char *locatefile (char *filename, const char **searchpath, int searchentries);
+char *locatefile(char *filename, const char **searchpath, int searchentries);
 struct filepointer* getfile(const char *filename);
 void   included_by(struct inclist *ip, struct inclist *newfile);
 struct inclist* newinclude(char *newfile, const char *incstring);

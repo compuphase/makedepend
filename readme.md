@@ -206,6 +206,8 @@ with the following syntax (note the "@" character):
 ```makedepend @options.txt
 ```
 
+The response file may have all options split over multiple lines.
+
 <dl>
 <dt> <code>-D</code>name=def </dt>
 <dt> <code>-D</code>name </dt>
