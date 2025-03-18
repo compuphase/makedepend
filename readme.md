@@ -33,9 +33,9 @@ warn for any options in `CFLAGS` that it does not recognize. Specifically, in
 this example, **makedepend** handles the `-D` and `-I` options in `CFLAGS` but
 silently ignores the `-Wall` option.
 
-By default, **makedepend** writes its output to a file called `makefile` (on
-operating systems with case-sensitive filenames, it tries both `makefile` and
-`Makefile`). If it finds it, it appends the generated dependencies to that
+By default, **makedepend** writes its output to a file called `Makefile` (on
+operating systems with case-sensitive filenames, it tries both `Makefile` and
+`makefile`). If it finds it, it appends the generated dependencies to that
 makefile. Following the above example, the output of running `make depend` might
 become:
 
