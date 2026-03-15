@@ -1,5 +1,6 @@
 # makedepend - create dependencies in makefiles
 
+&#x1F534; **This utility has migrated to https://codeberg.org/compuphase/makedepend** &#x1F534;
 
 ## Introduction
 
